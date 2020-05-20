@@ -9,9 +9,21 @@
 
 #define ITCM_START_BASE		0x80000000
 
+#define CSR_MCACHE_CTL      0x7CA
+#define CSR_CACHE_ENABLE    0x10001
+
 .global _start
 .section .text
 _start:
+    /* Enable I/D Cache */
+    li t0, CSR_CACHE_ENABLE
+    csrs CSR_MCACHE_CTL, t0
+	
+    /* Flush cache */
+	fence
+	fence.i
+	sfence.vma
+
 	/* configure nuspi to maximum speed */
 	la t0, 0x10014000
 	la t1, 0x01

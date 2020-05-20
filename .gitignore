@@ -4,3 +4,4 @@
 *.dis
 freeloader
 *.dtb
+*.elf

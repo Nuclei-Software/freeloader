@@ -5,6 +5,8 @@
 
 #define OPENSBI_START_BASE	0xa0000000
 #define UBOOT_START_BASE	0xa0200000
+#define KERNEL_START_BASE	0xa1000000
+#define INITRD_START_BASE	0xa8300000
 #define FDT_START_BASE		0xa8000000
 
 #define ITCM_START_BASE		0x80000000
@@ -65,6 +67,26 @@ _start:
 	//call _copy_data
 	jalr ra, t3, 0
 
+	/* Kernel section */
+	li t0, KERNEL_START_BASE
+	la t1, kernel
+	la t2, _end_kernel
+
+	/* call faraway function */
+	li t3, ITCM_START_BASE
+	//call _copy_data
+	jalr ra, t3, 0
+
+	/* Initrd section */
+	li t0, INITRD_START_BASE
+	la t1, initrd
+	la t2, _end_initrd
+
+	/* call faraway function */
+	li t3, ITCM_START_BASE
+	//call _copy_data
+	jalr ra, t3, 0
+
 	/* Flush cache */
 	fence
 	fence.i
@@ -103,7 +125,6 @@ _loop:
 sbi:
 .incbin "fw_jump.bin"
 
-
 .section .ubootpayload
 .global uboot
 .type uboot, @object
@@ -116,4 +137,14 @@ uboot:
 fdt:
 .incbin "fdt.dtb"
 
+.section .kernelpayload
+.global kernel
+.type kernel, @object
+kernel:
+.incbin "kernel.bin"
 
+.section .initrdpayload
+.global initrd
+.type initrd, @object
+initrd:
+.incbin "initrd.bin"

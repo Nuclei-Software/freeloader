@@ -2,7 +2,7 @@ FREELOADER ?= freeloader.elf
 ARCH ?= rv64imac
 ABI ?= lp64
 
-FW_JUMP_BIN ?= ../work/build/platform/nuclei/ux600/firmware/fw_jump.bin
+FW_JUMP_BIN ?= ../work/opensbi/platform/nuclei/ux600/firmware/fw_jump.bin
 UBOOT_BIN ?= ../work/u-boot/u-boot.bin
 DTB ?= ../work/boot/kernel.dtb
 KERNEL_BIN ?= ../work/boot/uImage.lz4

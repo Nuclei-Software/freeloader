@@ -4,18 +4,18 @@
  */
 
 /* Max to 2MB */
-#define OPENSBI_START_BASE	0xa0000000
+#define OPENSBI_START_BASE  0xa0000000
 /* Max to 14MB */
-#define UBOOT_START_BASE	0xa0200000
+#define UBOOT_START_BASE    0xa0200000
 /* 0xA1000000 - 0xA8000000 */
-#define KERNEL_START_BASE	0xa1000000
+#define KERNEL_START_BASE   0xa1000000
 /* 0xA8300000 - 0xB0000000 */
-#define INITRD_START_BASE	0xa8300000
+#define INITRD_START_BASE   0xa8300000
 
 /* Max to 1MB */
-#define FDT_START_BASE		0xa8000000
+#define FDT_START_BASE      0xa8000000
 /* Max to 2MB */
-#define COPY_START_BASE		0xa8100000
+#define COPY_START_BASE     0xa8100000
 
 #define CSR_MCACHE_CTL      0x7CA
 #define CSR_CACHE_ENABLE    0x10001
@@ -23,11 +23,15 @@
 .global _start
 .section .text
 _start:
-    /* Enable I/D Cache */
-    li t0, CSR_CACHE_ENABLE
-    csrs CSR_MCACHE_CTL, t0
-	
-    /* Flush cache */
+	/* Enable I/D Cache */
+	li t0, CSR_CACHE_ENABLE
+	csrs CSR_MCACHE_CTL, t0
+
+	/* Set exception entry */
+	la t0, exc_entry
+	csrw mtvec, t0
+
+	/* Flush cache */
 	fence
 	fence.i
 	sfence.vma
@@ -37,7 +41,7 @@ _start:
 	la t1, 0x0
 	sw t1, 0(t0)
 
-    /* move _copy_data() to DDR region to speed up */
+	/* move _copy_data() to DDR region to speed up */
 	li t0, COPY_START_BASE
 	la t1, _copy_data
 	la t2, _copy_data + 4 * 8
@@ -98,7 +102,6 @@ _start:
 	fence.i
 	sfence.vma
 
-
 	li a0, 0 /* hart ID */
 	li a1, 0 /* fdt offset, reserved */
 	li a2, 0 /* Reserved */
@@ -111,6 +114,12 @@ _start:
 _deadloop:
 	j .
 
+/* Fall back to _start when exception happened */
+.align 6
+exc_entry:
+	la a0, _start
+	csrw mepc, a0
+	mret
 
 /* copy_data(void *dst, void *src, void *end) */
 .align 4

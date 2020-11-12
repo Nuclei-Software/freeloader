@@ -3,11 +3,11 @@
  * Copyright (C) 2020 Nuclei System Technologies
  */
 
-#define OPENSBI_START_BASE	0xa0000000
-#define UBOOT_START_BASE	0xa0200000
-#define FDT_START_BASE		0xa8000000
+#define OPENSBI_START_BASE  0xa0000000
+#define UBOOT_START_BASE    0xa0200000
+#define FDT_START_BASE      0xa8000000
 
-#define COPY_START_BASE		0xa8100000
+#define COPY_START_BASE     0xa8100000
 
 #define CSR_MCACHE_CTL      0x7CA
 #define CSR_CACHE_ENABLE    0x10001
@@ -15,15 +15,15 @@
 .global _start
 .section .text
 _start:
-    /* Enable I/D Cache */
-    li t0, CSR_CACHE_ENABLE
-    csrs CSR_MCACHE_CTL, t0
+	/* Enable I/D Cache */
+	li t0, CSR_CACHE_ENABLE
+	csrs CSR_MCACHE_CTL, t0
 
 	/* Set exception entry */
 	la t0, exc_entry
 	csrw mtvec, t0
 	
-    /* Flush cache */
+	/* Flush cache */
 	fence
 	fence.i
 	sfence.vma
@@ -33,7 +33,7 @@ _start:
 	li t1, 0x0
 	sw t1, 0(t0)
 
-    /* move _copy_data() to DDR region */
+	/* move _copy_data() to DDR region */
 	li t0, COPY_START_BASE
 	la t1, _copy_data
 	la t2, _copy_data + 4 * 8
@@ -87,7 +87,7 @@ _deadloop:
 	j .
 
 /* Fall back to _start when exception happened */
-.align 8
+.align 6
 exc_entry:
 	la a0, _start
 	csrw mepc, a0
@@ -103,7 +103,6 @@ _loop:
 	addi t0, t0, 8
 	addi t1, t1, 8
 	blt t1, t2, _loop
-
 	ret
 
 .section .sbipayload
@@ -111,7 +110,6 @@ _loop:
 .type sbi, @object
 sbi:
 .incbin "fw_jump.bin"
-
 
 .section .ubootpayload
 .global uboot
@@ -124,5 +122,3 @@ uboot:
 .type fdt, @object
 fdt:
 .incbin "fdt.dtb"
-
-

@@ -7,7 +7,7 @@
 #define UBOOT_START_BASE	0xa0200000
 #define FDT_START_BASE		0xa8000000
 
-#define ITCM_START_BASE		0x80000000
+#define COPY_START_BASE		0xa8100000
 
 #define CSR_MCACHE_CTL      0x7CA
 #define CSR_CACHE_ENABLE    0x10001
@@ -30,7 +30,7 @@ _start:
 	sw t1, 0(t0)
 
     /* move _copy_data() to ITCM region */
-	li t0, ITCM_START_BASE
+	li t0, COPY_START_BASE
 	la t1, _copy_data
 	la t2, _copy_data + 4 * 8
 	call _copy_data
@@ -41,7 +41,7 @@ _start:
 	la t2, _end_sbi
 
 	/* call faraway function */
-	li t3, ITCM_START_BASE
+	li t3, COPY_START_BASE
 	//call _copy_data
 	jalr ra, t3, 0
 
@@ -51,7 +51,7 @@ _start:
 	la t2, _end_uboot
 
 	/* call faraway function */
-	li t3, ITCM_START_BASE
+	li t3, COPY_START_BASE
 	//call _copy_data
 	jalr ra, t3, 0
 
@@ -61,7 +61,7 @@ _start:
 	la t2, _end_fdt
 
 	/* call faraway function */
-	li t3, ITCM_START_BASE
+	li t3, COPY_START_BASE
 	//call _copy_data
 	jalr ra, t3, 0
 

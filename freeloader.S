@@ -18,6 +18,10 @@ _start:
     /* Enable I/D Cache */
     li t0, CSR_CACHE_ENABLE
     csrs CSR_MCACHE_CTL, t0
+
+	/* Set exception entry */
+	la t0, exc_entry
+	csrw mtvec, t0
 	
     /* Flush cache */
 	fence
@@ -25,11 +29,11 @@ _start:
 	sfence.vma
 
 	/* configure nuspi to maximum speed */
-	la t0, 0x10014000
-	la t1, 0x01
+	li t0, 0x10014000
+	li t1, 0x0
 	sw t1, 0(t0)
 
-    /* move _copy_data() to ITCM region */
+    /* move _copy_data() to DDR region */
 	li t0, COPY_START_BASE
 	la t1, _copy_data
 	la t2, _copy_data + 4 * 8
@@ -43,7 +47,7 @@ _start:
 	/* call faraway function */
 	li t3, COPY_START_BASE
 	//call _copy_data
-	jalr ra, t3, 0
+	jalr ra, 0(t3)
 
 	/* U-Boot section */
 	li t0, UBOOT_START_BASE
@@ -53,7 +57,7 @@ _start:
 	/* call faraway function */
 	li t3, COPY_START_BASE
 	//call _copy_data
-	jalr ra, t3, 0
+	jalr ra, 0(t3)
 
 	/* FDT section */
 	li t0, FDT_START_BASE
@@ -63,13 +67,12 @@ _start:
 	/* call faraway function */
 	li t3, COPY_START_BASE
 	//call _copy_data
-	jalr ra, t3, 0
+	jalr ra, 0(t3)
 
 	/* Flush cache */
 	fence
 	fence.i
 	sfence.vma
-
 
 	li a0, 0 /* hart ID */
 	li a1, 0 /* fdt offset, reserved */
@@ -83,6 +86,12 @@ _start:
 _deadloop:
 	j .
 
+/* Fall back to _start when exception happened */
+.align 8
+exc_entry:
+	la a0, _start
+	csrw mepc, a0
+	mret
 
 /* copy_data(void *dst, void *src, void *end) */
 .align 4

@@ -41,6 +41,7 @@ freeloader.dis: $(FREELOADER)
 clean:
 	rm -f *.bin
 	rm -f *.elf
+	rm -f *.dis
 	rm -f freeloader.bin
 	rm -f freeloader
 	rm -f *.dtb

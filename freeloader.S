@@ -31,21 +31,16 @@ _start:
 	la t0, exc_entry
 	csrw mtvec, t0
 
-	/* Flush cache */
-	fence
-	fence.i
-	sfence.vma
-
-	/* configure nuspi to maximum speed */
-	la t0, 0x10014000
-	la t1, 0x0
-	sw t1, 0(t0)
-
 	/* move _copy_data() to DDR region to speed up */
 	li t0, COPY_START_BASE
 	la t1, _copy_data
 	la t2, _copy_data + 4 * 8
 	call _copy_data
+
+	/* Flush cache when copy_data function copied to DDR */
+	fence
+	fence.i
+	sfence.vma
 
 	/* move data from NOR to DDR */
 	li t0, OPENSBI_START_BASE

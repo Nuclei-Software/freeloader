@@ -16,6 +16,11 @@ SECTIONS
 	KEEP (*(.text))
 
 	. = ALIGN(8);
+	KEEP (*(.bootrom))
+	. = ALIGN(8);
+	PROVIDE (_end_bootrom = .);
+
+	. = ALIGN(8);
 	KEEP (*(.sbipayload))
 	. = ALIGN(8);
 	PROVIDE (_end_sbi = .);

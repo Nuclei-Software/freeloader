@@ -3,8 +3,10 @@
  * Copyright (C) 2020 Nuclei System Technologies
  */
 
-/* Max to 2MB */
+/* Max to 1MB */
 #define OPENSBI_START_BASE	0xa0000000
+/* Max to 1MB */
+#define BOOTROM_START_BASE	0xa0100000
 /* Max to 14MB */
 #define UBOOT_START_BASE	0xa0200000
 /* 0xA1000000 - 0xA8000000 */
@@ -26,22 +28,21 @@ _start:
     /* Enable I/D Cache */
     li t0, CSR_CACHE_ENABLE
     csrs CSR_MCACHE_CTL, t0
-	
-    /* Flush cache */
-	fence
-	fence.i
-	sfence.vma
 
-	/* configure nuspi to maximum speed */
-	la t0, 0x10014000
-	la t1, 0x0
-	sw t1, 0(t0)
+	/* Set exception entry */
+	la t0, exc_entry
+	csrw mtvec, t0
 
     /* move _copy_data() to DDR region to speed up */
 	li t0, COPY_START_BASE
 	la t1, _copy_data
 	la t2, _copy_data + 4 * 8
 	call _copy_data
+
+	/* Flush cache for copy_data function */
+	fence
+	fence.i
+	sfence.vma
 
 	/* move data from NOR to DDR */
 	li t0, OPENSBI_START_BASE
@@ -74,19 +75,29 @@ _start:
 	jalr ra, t3, 0
 
 	/* Kernel section */
-	li t0, KERNEL_START_BASE
-	la t1, kernel
-	la t2, _end_kernel
+	//li t0, KERNEL_START_BASE
+	//la t1, kernel
+	//la t2, _end_kernel
 
-	/* call faraway function */
-	li t3, COPY_START_BASE
-	//call _copy_data
-	jalr ra, t3, 0
+	///* call faraway function */
+	//li t3, COPY_START_BASE
+	////call _copy_data
+	//jalr ra, t3, 0
 
 	/* Initrd section */
-	li t0, INITRD_START_BASE
-	la t1, initrd
-	la t2, _end_initrd
+	//li t0, INITRD_START_BASE
+	//la t1, initrd
+	//la t2, _end_initrd
+
+	/* call faraway function */
+	//li t3, COPY_START_BASE
+	////call _copy_data
+	//jalr ra, t3, 0
+
+	/* move data from NOR to DDR */
+	li t0, BOOTROM_START_BASE
+	la t1, bootrom
+	la t2, _end_bootrom
 
 	/* call faraway function */
 	li t3, COPY_START_BASE
@@ -95,9 +106,8 @@ _start:
 
 	/* Flush cache */
 	fence
-	fence.i
 	sfence.vma
-
+	fence.i
 
 	li a0, 0 /* hart ID */
 	li a1, 0 /* fdt offset, reserved */
@@ -105,12 +115,18 @@ _start:
 
 	/* Goto OpenSBI */
 
-	li t0, OPENSBI_START_BASE
+	li t0, BOOTROM_START_BASE
 	jr t0
 
 _deadloop:
 	j .
 
+/* Fall back to _start when exception happened */
+.align 6
+exc_entry:
+	la a0, _start
+	csrw mepc, a0
+	mret
 
 /* copy_data(void *dst, void *src, void *end) */
 .align 4
@@ -143,14 +159,20 @@ uboot:
 fdt:
 .incbin "fdt.dtb"
 
-.section .kernelpayload
-.global kernel
-.type kernel, @object
-kernel:
-.incbin "kernel.bin"
+.section .bootrom
+.global bootrom
+.type bootrom, @object
+bootrom:
+.incbin "bootrom.bin"
 
-.section .initrdpayload
-.global initrd
-.type initrd, @object
-initrd:
-.incbin "initrd.bin"
+//.section .kernelpayload
+//.global kernel
+//.type kernel, @object
+//kernel:
+//.incbin "kernel.bin"
+
+//.section .initrdpayload
+//.global initrd
+//.type initrd, @object
+//initrd:
+//.incbin "initrd.bin"

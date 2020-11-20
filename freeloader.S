@@ -7,8 +7,8 @@
 #define OPENSBI_START_BASE	0xa0000000
 /* Max to 1MB */
 #define BOOTROM_START_BASE	0xa0100000
-/* Max to 14MB */
-#define UBOOT_START_BASE	0xa0200000
+/* Max to 14MB, 0xa0200000 - 0xa0400000 is reserved for uboot stack */
+#define UBOOT_START_BASE	0xa0400000
 /* 0xA1000000 - 0xA8000000 */
 #define KERNEL_START_BASE	0xa1000000
 /* 0xA8300000 - 0xB0000000 */
@@ -21,6 +21,8 @@
 
 #define CSR_MCACHE_CTL      0x7CA
 #define CSR_CACHE_ENABLE    0x10001
+
+//#define ALL_IN_FLASH
 
 .global _start
 .section .text
@@ -74,25 +76,27 @@ _start:
 	//call _copy_data
 	jalr ra, t3, 0
 
+#ifdef ALL_IN_FLASH
 	/* Kernel section */
-	//li t0, KERNEL_START_BASE
-	//la t1, kernel
-	//la t2, _end_kernel
-
-	///* call faraway function */
-	//li t3, COPY_START_BASE
-	////call _copy_data
-	//jalr ra, t3, 0
-
-	/* Initrd section */
-	//li t0, INITRD_START_BASE
-	//la t1, initrd
-	//la t2, _end_initrd
+	li t0, KERNEL_START_BASE
+	la t1, kernel
+	la t2, _end_kernel
 
 	/* call faraway function */
-	//li t3, COPY_START_BASE
-	////call _copy_data
-	//jalr ra, t3, 0
+	li t3, COPY_START_BASE
+	//call _copy_data
+	jalr ra, t3, 0
+
+	/* Initrd section */
+	li t0, INITRD_START_BASE
+	la t1, initrd
+	la t2, _end_initrd
+
+	/* call faraway function */
+	li t3, COPY_START_BASE
+	//call _copy_data
+	jalr ra, t3, 0
+#endif
 
 	/* move data from NOR to DDR */
 	li t0, BOOTROM_START_BASE
@@ -165,14 +169,17 @@ fdt:
 bootrom:
 .incbin "bootrom.bin"
 
-//.section .kernelpayload
-//.global kernel
-//.type kernel, @object
-//kernel:
-//.incbin "kernel.bin"
+#ifdef ALL_IN_FLASH
 
-//.section .initrdpayload
-//.global initrd
-//.type initrd, @object
-//initrd:
-//.incbin "initrd.bin"
+.section .kernelpayload
+.global kernel
+.type kernel, @object
+kernel:
+.incbin "kernel.bin"
+
+.section .initrdpayload
+.global initrd
+.type initrd, @object
+initrd:
+.incbin "initrd.bin"
+#endif

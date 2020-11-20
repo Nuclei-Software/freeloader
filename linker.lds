@@ -4,7 +4,8 @@ ENTRY( _start )
 
 MEMORY
 {
-	flash (rxai!w) : ORIGIN = 0x20000000, LENGTH = 8M
+	//flash (rxai!w) : ORIGIN = 0x90000000, LENGTH = 16M
+	flash (rxai!w) : ORIGIN = 0x20000000, LENGTH = 16M
 }
 
 

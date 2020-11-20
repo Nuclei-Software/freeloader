@@ -22,7 +22,6 @@
 #define CSR_MCACHE_CTL      0x7CA
 #define CSR_CACHE_ENABLE    0x10001
 
-//#define ALL_IN_FLASH
 
 .global _start
 .section .text
@@ -76,7 +75,7 @@ _start:
 	//call _copy_data
 	jalr ra, t3, 0
 
-#ifdef ALL_IN_FLASH
+#ifdef BOOT_MODE_FLASH
 	/* Kernel section */
 	li t0, KERNEL_START_BASE
 	la t1, kernel
@@ -169,8 +168,7 @@ fdt:
 bootrom:
 .incbin "bootrom.bin"
 
-#ifdef ALL_IN_FLASH
-
+#ifdef BOOT_MODE_FLASH
 .section .kernelpayload
 .global kernel
 .type kernel, @object

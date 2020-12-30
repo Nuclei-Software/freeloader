@@ -2,17 +2,17 @@ FREELOADER ?= freeloader.elf
 ARCH ?= rv64imac
 ABI ?= lp64
 
-BUILD_ROOT ?= ../build
+BUILD_ROOT ?= ../work
 BOOT_MODE ?= sd
 
-BOOTROM_BIN ?= $(BUILD_ROOT)/bootrom.build/bootrom.bin
-FW_JUMP_BIN ?= $(BUILD_ROOT)/riscv-pk.build/bbl.bin
-UBOOT_BIN ?= $(BUILD_ROOT)/u-boot.build/u-boot.bin
-DTB ?= $(BUILD_ROOT)/boot.build/kernel.dtb
-KERNEL_BIN ?= $(BUILD_ROOT)/boot.build/uImage.lz4
-INITRD_BIN ?= $(BUILD_ROOT)/boot.build/uInitrd.lz4
+BOOTROM_BIN ?= $(BUILD_ROOT)/bootrom/bootrom.bin
+FW_JUMP_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/ux600/firmware/fw_jump.bin
+UBOOT_BIN ?= $(BUILD_ROOT)/u-boot/u-boot.bin
+DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
+KERNEL_BIN ?= $(BUILD_ROOT)/boot/uImage.lz4
+INITRD_BIN ?= $(BUILD_ROOT)/boot/uInitrd.lz4
 
-CROSS_COMPILE ?= riscv64-unknown-linux-gnu-
+CROSS_COMPILE ?= riscv-nuclei-linux-gnu-
 
 FREELOADER_REQS := u-boot.bin bootrom.bin fw_jump.bin linker.lds freeloader.S fdt.dtb
 CFLAGS := -g -march=$(ARCH) -mabi=$(ABI)

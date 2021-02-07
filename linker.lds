@@ -4,33 +4,45 @@ ENTRY( _start )
 
 MEMORY
 {
-	flash (rxai!w) : ORIGIN = 0x20000000, LENGTH = 4M
+    /* current nuclei fpga emulation board's mcu spiflash size is only 4MB */
+    /* but still put 32M here, for BOOT_MODE=flash to make build pass */
+    flash (rxai!w) : ORIGIN = 0x20000000, LENGTH = 32M
 }
 
 
 SECTIONS
 {
 
-  .text           :
+  .text :
   {
-	KEEP (*(.text))
+    KEEP (*(.text))
 
-	. = ALIGN(8);
-	KEEP (*(.sbipayload))
-	. = ALIGN(8);
-	PROVIDE (_end_sbi = .);
+    . = ALIGN(8);
+    KEEP (*(.bootrom))
+    . = ALIGN(8);
+    PROVIDE (_end_bootrom = .);
 
+    . = ALIGN(8);
+    KEEP (*(.sbipayload))
+    . = ALIGN(8);
+    PROVIDE (_end_sbi = .);
 
-	KEEP (*(.ubootpayload))
-	PROVIDE (end_uboot = .);
-	. = ALIGN(8);
-	PROVIDE (_end_uboot = .);
+    KEEP (*(.ubootpayload))
+    . = ALIGN(8);
+    PROVIDE (_end_uboot = .);
 
-	KEEP (*(.fdtpayload))
-	. = ALIGN(8);
-	PROVIDE (_end_fdt = .);
+    KEEP (*(.fdtpayload))
+    . = ALIGN(8);
+    PROVIDE (_end_fdt = .);
+
+    KEEP (*(.kernelpayload))
+    . = ALIGN(8);
+    PROVIDE (_end_kernel = .);
+
+    KEEP (*(.initrdpayload))
+    . = ALIGN(8);
+    PROVIDE (_end_initrd = .);
   } >flash
-
 
 }
 

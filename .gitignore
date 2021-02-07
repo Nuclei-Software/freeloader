@@ -2,6 +2,8 @@
 *.fdt
 *~
 *.dis
+*.dasm
+*.dump
 freeloader
 *.dtb
 *.elf

@@ -6,7 +6,7 @@ BUILD_ROOT ?= ../work
 # BOOT_MODE supported : sd, flash
 BOOT_MODE ?= sd
 
-OPENSBI_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/ux600/firmware/fw_jump.bin
+OPENSBI_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/generic/firmware/fw_jump.bin
 UBOOT_BIN ?= $(BUILD_ROOT)/u-boot/u-boot.bin
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
 KERNEL_BIN ?= $(BUILD_ROOT)/boot/uImage.lz4

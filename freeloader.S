@@ -8,8 +8,8 @@
 
 /* Max to 1MB */
 #define OPENSBI_START_BASE  (DDR_BASE + 0x0)
-/* Max to 14MB, offset to DDR_BASE 0x200000 - 0x400000 is reserved for uboot stack */
-#define UBOOT_START_BASE    (DDR_BASE + 0x400000)
+/* Max to 14MB */
+#define UBOOT_START_BASE    (DDR_BASE + 0x200000)
 /* Offset to DDR_BASE: 0x1000000 - 0x8000000 */
 #define KERNEL_START_BASE   (DDR_BASE + 0x1000000)
 /* Offset to DDR_BASE: 0x8000000, Max to 1MB */

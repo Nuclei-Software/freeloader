@@ -7,3 +7,7 @@
 freeloader
 *.dtb
 *.elf
+*.map
+memory.lds
+config.mk
+build

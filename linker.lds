@@ -2,13 +2,14 @@ OUTPUT_ARCH( "riscv" )
 
 ENTRY( _start )
 
+INCLUDE memory.lds
+
 MEMORY
 {
     /* current nuclei fpga emulation board's mcu spiflash size is only 4MB */
     /* but still put 32M here, for BOOT_MODE=flash to make build pass */
-    flash (rxai!w) : ORIGIN = 0x20000000, LENGTH = 32M
+    flash (rxai!w) : ORIGIN = FLASH_BASE, LENGTH = FLASH_SIZE
 }
-
 
 SECTIONS
 {
@@ -34,6 +35,18 @@ SECTIONS
     KEEP (*(.fdtpayload))
     . = ALIGN(8);
     PROVIDE (_end_fdt = .);
+
+    KEEP (*(.ampfwpayloadc1))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc1 = .);
+
+    KEEP (*(.ampfwpayloadc2))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc2 = .);
+
+    KEEP (*(.ampfwpayloadc3))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc3 = .);
 
     KEEP (*(.kernelpayload))
     . = ALIGN(8);

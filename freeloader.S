@@ -4,7 +4,9 @@
  * Copyright (C) 2020-present Nuclei System Technology
  */
 
+#ifndef DDR_BASE
 #define DDR_BASE            0xA0000000
+#endif
 
 /* Max to 1MB */
 #define OPENSBI_START_BASE  (DDR_BASE + 0x0)
@@ -14,26 +16,155 @@
 #define KERNEL_START_BASE   (DDR_BASE + 0x1000000)
 /* Offset to DDR_BASE: 0x8000000, Max to 1MB */
 #define FDT_START_BASE      (DDR_BASE + 0x8000000)
-/* Offset to DDR_BASE: 0x8100000, Max to 2MB */
+/* Offset to DDR_BASE: 0x8100000, Max to 4KB */
 #define COPY_START_BASE     (DDR_BASE + 0x8100000)
-/* Offset to DDR_BASE: 0x8300000 - 0x10000000 */
+/* Offset to DDR_BASE: 0x0101000, between opensbi and uboot area */
+#define BOOT_FLAG_BASE      (DDR_BASE + 0x0101000)
+#define SMP_FLAG_BASE       (DDR_BASE + 0x0101004)
+/* reserved 4 * 4 = 16 bytes, for core0 - core3 */
+#define REBOOT_CNT_BASE     (DDR_BASE + 0x0101008)
+
+/* Offset to DDR_BASE: 0x8300000 - 0xE0000000 */
 #define INITRD_START_BASE   (DDR_BASE + 0x8300000)
+/* Offset to DDR_BASE: 0xF800000 - 0x10000000, 8MB */
+#define FIRMWARE_START_BASE (DDR_BASE + 0xE000000)
+/* reserved 3 cores firmware space, core1 - core3 */
+#define AMPFW_START_BASE    (FIRMWARE_START_BASE + 0x0)
+#define AMPFW_SIZE          (0x00800000)
 
+#define AMPFW_C1_START_BASE (AMPFW_START_BASE)
+#define AMPFW_C2_START_BASE (AMPFW_START_BASE + AMPFW_SIZE)
+#define AMPFW_C3_START_BASE (AMPFW_START_BASE + (AMPFW_SIZE * 2))
 
+#ifndef AMP_START_CORE
+#define AMP_START_CORE      4
+#endif
+
+#define BOOT_FLAG_MAGIC     0xCAFE5A5AUL
+#define BOOT_FLAG_COPY      0xFFA5A5FFUL
+
+/* CSR macros */
 #define CSR_MCACHE_CTL      0x7CA
+#define CSR_MSMPCFG_INFO    0x7F7
+
+#ifndef CACHE_CTRL
+/* ICache Enable, DCache Enable */
 #define CSR_CACHE_ENABLE    0x10001
+#else
+#define CSR_CACHE_ENABLE    CACHE_CTRL
+#endif
 
 
 .global _start
 .section .text
 _start:
+    /* Disable interrupt */
+    csrc mstatus, 0x8
+    /* Set exception entry */
+    la t0, exc_entry
+    csrw mtvec, t0
+
+_get_smpbase:
+#if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
+    /* Enable L2 Cache using HART 0 */
+    // get smp ctrl base to t0
+    csrr t0, CSR_MSMPCFG_INFO
+    srai t0, t0, 4 // t0 = t0 >> 4
+    slli t0, t0, 4 // t0 = t0 << 4
+#endif
+
+_enable_smp:
+#if defined(ENABLE_SMP) && ENABLE_SMP == 1
+    // set smp enable = 0xFFFFFFFF, enable all core smp
+    li t1, 0xFFFFFFFF
+    sw t1, 0xc(t0)
+    // make sure store sucessfully
+    fence
+#endif
+
+_enable_l2:
+#if defined(ENABLE_L2) && ENABLE_L2 == 1
+    // set l2 ctrl = 0x1
+    li t1, 1
+    sw t1, 0x10(t0)
+    fence
+#endif
+
+_enable_l1:
+    /* Enable Supervisor/User Mode CCM Operation */
+    li t0, 0xFFFFFFFF
+    csrw 0x7ce, t0
     /* Enable I/D Cache */
     li t0, CSR_CACHE_ENABLE
     csrs CSR_MCACHE_CTL, t0
 
-    /* Set exception entry */
-    la t0, exc_entry
+_check_hart:
+    /* Hart 0 copy images, other hart wait copy finished, and jump to boot */
+    csrr a0, mhartid
+	beq a0, zero, _copy_image
+
+_wait_copy:
+    /* wait for some loops for flag cleared */
+    li a0, 20000
+    li a1, 0
+    la t0, _dead_loop_amp
     csrw mtvec, t0
+_loop_wait:
+    nop
+    addi a1, a1, 1
+    bne a0, a1, _loop_wait
+
+    li t0, BOOT_FLAG_BASE
+    lwu t0, 0(t0)
+    li t1, BOOT_FLAG_MAGIC
+    beq t0, t1, _start_smporamp
+    j _wait_copy
+
+_start_smporamp:
+    csrr t0, mhartid
+    li t1, AMP_START_CORE
+    // branch to amp boot if amp start core >= hartid
+    bgeu t0, t1, _start_amp
+    j _start_boot
+
+_start_amp:
+    // Increase REBOOT_CNT_BASE + hartid * 4
+    li t0, REBOOT_CNT_BASE
+    csrr t2, mhartid
+    li t1, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    // * (REBOOT_CNT_BASE + hartid * 4) += 1
+    lwu t1, 0(t0)
+    addi t1, t1, 1
+    sw t1, 0(t0)
+    fence
+
+    // jump address t0 = AMPFW_START_BASE + AMPFW_SIZE * (mhartid - 1)
+    li t0, AMPFW_START_BASE
+    li t1, AMPFW_SIZE
+    csrr t2, mhartid
+    // mhartid must > 1 here
+    addi t2, t2, -1
+    // hart program offset = AMPfw_size * (hartid-1)
+    mul t1, t1, t2
+    add t0, t0, t1
+
+    jr t0
+    j _dead_loop_amp
+
+_copy_image:
+    /* Set boot_flag to 1 */
+    li t0, BOOT_FLAG_BASE
+    li t1, BOOT_FLAG_COPY
+    sw t1, 0(t0)
+    li t0, REBOOT_CNT_BASE
+    // clear reboot count for 4 core to zero
+    sw zero, 0(t0)
+    sw zero, 4(t0)
+    sw zero, 8(t0)
+    sw zero, 16(t0)
+    fence
 
     /* move _copy_data() to DDR region */
     li t0, COPY_START_BASE
@@ -76,6 +207,42 @@ _start:
     //call _copy_data
     jalr ra, t3, 0
 
+#if defined(WITH_AMPFW_CORE1)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C1_START_BASE
+    la t1, ampfwc1
+    la t2, _end_ampfwc1
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
+#if defined(WITH_AMPFW_CORE2)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C2_START_BASE
+    la t1, ampfwc2
+    la t2, _end_ampfwc2
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
+#if defined(WITH_AMPFW_CORE3)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C3_START_BASE
+    la t1, ampfwc3
+    la t2, _end_ampfwc3
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
 #ifdef BOOT_MODE_FLASH
     /* Kernel section */
     li t0, KERNEL_START_BASE
@@ -103,28 +270,29 @@ _start:
     sfence.vma
     fence.i
 
-    li a0, 0 /* hart ID */
-    li a1, 0 /* fdt offset, reserved */
+_start_boot:
+    /**
+     * prepare opensbi entry arguments
+     * hartid via a0 register
+     * device tree blob address in memory via a1 register. The address must be aligned to 8 bytes.
+     */
+    csrr a0, mhartid /* hart ID */
+    li a1, FDT_START_BASE /* fdt offset */
     li a2, 0 /* Reserved */
 
-    /* Goto OpenSBI */
+    /* clear boot_flag to 0 */
+    li t0, BOOT_FLAG_BASE
+    li t1, BOOT_FLAG_MAGIC
+    sw t1, 0(t0)
+    fence
 
+    /* Goto OpenSBI */
     li t0, OPENSBI_START_BASE
     jr t0
 
-_deadloop:
-    j .
-
-/* Fall back to _start when exception happened */
-.align 6
-exc_entry:
-    la a0, _start
-    csrw mepc, a0
-    mret
 
 /* copy_data(void *dst, void *src, void *end) */
 .align 4
-
 _copy_data:
 _loop:
     ld t3, 0(t1)
@@ -133,6 +301,25 @@ _loop:
     addi t1, t1, 8
     blt t1, t2, _loop
     ret
+
+/* Fall back to _start when exception happened */
+.align 6
+exc_entry:
+    la a0, _start
+    csrw mepc, a0
+    mret
+
+.align 12
+// dead loop, nop here
+_dead_loop_amp:
+_deadloop:
+    // la t0, _dead_loop_amp
+    // csrw mtvec, t0
+    csrc mstatus, 0x8
+    li t0, CSR_CACHE_ENABLE
+    csrc CSR_MCACHE_CTL, t0
+    wfi
+    j _deadloop
 
 .section .sbipayload
 .global sbi
@@ -151,6 +338,30 @@ uboot:
 .type fdt, @object
 fdt:
 .incbin "fdt.dtb"
+
+#if defined(WITH_AMPFW_CORE1)
+.section .ampfwpayloadc1
+.global ampfwc1
+.type ampfwc1, @object
+ampfwc1:
+.incbin "ampfw_core1.bin"
+#endif
+
+#if defined(WITH_AMPFW_CORE2)
+.section .ampfwpayloadc2
+.global ampfwc2
+.type ampfwc2, @object
+ampfwc2:
+.incbin "ampfw_core2.bin"
+#endif
+
+#if defined(WITH_AMPFW_CORE3)
+.section .ampfwpayloadc3
+.global ampfwc3
+.type ampfwc3, @object
+ampfwc3:
+.incbin "ampfw_core3.bin"
+#endif
 
 #ifdef BOOT_MODE_FLASH
 .section .kernelpayload

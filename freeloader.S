@@ -74,9 +74,10 @@ _get_smpbase:
     slli t0, t0, 4 // t0 = t0 << 4
 #endif
 
+    /* Don't use t0 here */
     /* Set exception entry */
-    la t0, exc_entry
-    csrw mtvec, t0
+    la t1, exc_entry
+    csrw mtvec, t1
 
 _enable_smp:
 #if defined(ENABLE_SMP) && ENABLE_SMP == 1

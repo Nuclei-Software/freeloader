@@ -60,18 +60,23 @@
 _start:
     /* Disable interrupt */
     csrc mstatus, 0x8
-    /* Set exception entry */
-    la t0, exc_entry
-    csrw mtvec, t0
 
 _get_smpbase:
 #if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
+    /* If smp probe failed, goto _try_smp_fail,
+     * directly skip steps to enable smp and l2 */
+    la t0, _try_smp_fail
+    csrw mtvec, t0
     /* Enable L2 Cache using HART 0 */
     // get smp ctrl base to t0
     csrr t0, CSR_MSMPCFG_INFO
     srai t0, t0, 4 // t0 = t0 >> 4
     slli t0, t0, 4 // t0 = t0 << 4
 #endif
+
+    /* Set exception entry */
+    la t0, exc_entry
+    csrw mtvec, t0
 
 _enable_smp:
 #if defined(ENABLE_SMP) && ENABLE_SMP == 1
@@ -306,6 +311,13 @@ _loop:
 .align 6
 exc_entry:
     la a0, _start
+    csrw mepc, a0
+    mret
+
+/* Fall back to _enable_l1 when smp probe failed happened */
+.align 6
+_try_smp_fail:
+    la a0, _enable_l1
     csrw mepc, a0
     mret
 

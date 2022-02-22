@@ -16,6 +16,10 @@ INITRD_BIN ?= $(BUILD_ROOT)/boot/uInitrd.lz4
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=
 CORE3_APP_BIN ?=
+CORE4_APP_BIN ?=
+CORE5_APP_BIN ?=
+CORE6_APP_BIN ?=
+CORE7_APP_BIN ?=
 
 # config makefile passed by make which defines
 # DDR_BASE, FLASH_BASE, FLASH_SIZE, CACHE_CTRL
@@ -29,7 +33,7 @@ FLASH_SIZE ?= 16M
 CACHE_CTRL ?= 0x10001
 ENABLE_SMP ?= 0
 ENABLE_L2 ?= 0
-AMP_START_CORE ?= 4
+AMP_START_CORE ?= 8
 
 # Misc macros
 check_item_exist = $(strip $(if $(filter 1, $(words $(1))),$(filter $(1), $(sort $(2))),))
@@ -77,6 +81,30 @@ ifneq ($(CORE3_APP_BIN),)
 FREELOADER_BUILD_REQS += ampfw_core3.bin
 CFLAGS += -DWITH_AMPFW_CORE3
 $(build_dir)/ampfw_core3.bin: $(CORE3_APP_BIN)
+	cp $< $@
+endif
+ifneq ($(CORE4_APP_BIN),)
+FREELOADER_BUILD_REQS += ampfw_core4.bin
+CFLAGS += -DWITH_AMPFW_CORE4
+$(build_dir)/ampfw_core4.bin: $(CORE4_APP_BIN)
+	cp $< $@
+endif
+ifneq ($(CORE5_APP_BIN),)
+FREELOADER_BUILD_REQS += ampfw_core5.bin
+CFLAGS += -DWITH_AMPFW_CORE5
+$(build_dir)/ampfw_core5.bin: $(CORE5_APP_BIN)
+	cp $< $@
+endif
+ifneq ($(CORE6_APP_BIN),)
+FREELOADER_BUILD_REQS += ampfw_core6.bin
+CFLAGS += -DWITH_AMPFW_CORE6
+$(build_dir)/ampfw_core6.bin: $(CORE6_APP_BIN)
+	cp $< $@
+endif
+ifneq ($(CORE7_APP_BIN),)
+FREELOADER_BUILD_REQS += ampfw_core7.bin
+CFLAGS += -DWITH_AMPFW_CORE7
+$(build_dir)/ampfw_core7.bin: $(CORE7_APP_BIN)
 	cp $< $@
 endif
 

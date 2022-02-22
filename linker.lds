@@ -48,6 +48,22 @@ SECTIONS
     . = ALIGN(8);
     PROVIDE (_end_ampfwc3 = .);
 
+    KEEP (*(.ampfwpayloadc4))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc4 = .);
+
+    KEEP (*(.ampfwpayloadc5))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc5 = .);
+
+    KEEP (*(.ampfwpayloadc6))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc6 = .);
+
+    KEEP (*(.ampfwpayloadc7))
+    . = ALIGN(8);
+    PROVIDE (_end_ampfwc7 = .);
+
     KEEP (*(.kernelpayload))
     . = ALIGN(8);
     PROVIDE (_end_kernel = .);

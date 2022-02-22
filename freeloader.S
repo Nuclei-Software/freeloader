@@ -35,9 +35,13 @@
 #define AMPFW_C1_START_BASE (AMPFW_START_BASE)
 #define AMPFW_C2_START_BASE (AMPFW_START_BASE + AMPFW_SIZE)
 #define AMPFW_C3_START_BASE (AMPFW_START_BASE + (AMPFW_SIZE * 2))
+#define AMPFW_C4_START_BASE (AMPFW_START_BASE + (AMPFW_SIZE * 3))
+#define AMPFW_C5_START_BASE (AMPFW_START_BASE + (AMPFW_SIZE * 4))
+#define AMPFW_C6_START_BASE (AMPFW_START_BASE + (AMPFW_SIZE * 5))
+#define AMPFW_C7_START_BASE (AMPFW_START_BASE + (AMPFW_SIZE * 6))
 
 #ifndef AMP_START_CORE
-#define AMP_START_CORE      4
+#define AMP_START_CORE      8
 #endif
 
 #define BOOT_FLAG_MAGIC     0xCAFE5A5AUL
@@ -249,6 +253,54 @@ _copy_image:
     jalr ra, t3, 0
 #endif
 
+#if defined(WITH_AMPFW_CORE4)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C4_START_BASE
+    la t1, ampfwc4
+    la t2, _end_ampfwc4
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
+#if defined(WITH_AMPFW_CORE5)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C5_START_BASE
+    la t1, ampfwc5
+    la t2, _end_ampfwc5
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
+#if defined(WITH_AMPFW_CORE6)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C6_START_BASE
+    la t1, ampfwc6
+    la t2, _end_ampfwc6
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
+#if defined(WITH_AMPFW_CORE7)
+    /* AMP Image Firmware section */
+    li t0, AMPFW_C7_START_BASE
+    la t1, ampfwc7
+    la t2, _end_ampfwc7
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
 #ifdef BOOT_MODE_FLASH
     /* Kernel section */
     li t0, KERNEL_START_BASE
@@ -374,6 +426,38 @@ ampfwc2:
 .type ampfwc3, @object
 ampfwc3:
 .incbin "ampfw_core3.bin"
+#endif
+
+#if defined(WITH_AMPFW_CORE4)
+.section .ampfwpayloadc4
+.global ampfwc4
+.type ampfwc4, @object
+ampfwc4:
+.incbin "ampfw_core4.bin"
+#endif
+
+#if defined(WITH_AMPFW_CORE5)
+.section .ampfwpayloadc5
+.global ampfwc5
+.type ampfwc5, @object
+ampfwc5:
+.incbin "ampfw_core5.bin"
+#endif
+
+#if defined(WITH_AMPFW_CORE6)
+.section .ampfwpayloadc6
+.global ampfwc6
+.type ampfwc6, @object
+ampfwc6:
+.incbin "ampfw_core6.bin"
+#endif
+
+#if defined(WITH_AMPFW_CORE7)
+.section .ampfwpayloadc7
+.global ampfwc7
+.type ampfwc7, @object
+ampfwc7:
+.incbin "ampfw_core7.bin"
 #endif
 
 #ifdef BOOT_MODE_FLASH

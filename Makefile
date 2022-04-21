@@ -1,6 +1,7 @@
 CROSS_COMPILE ?= riscv-nuclei-linux-gnu-
 ARCH ?= rv64imac
 ABI ?= lp64
+ARCH_EXT ?=
 
 SOC ?= demosoc
 BUILD_ROOT ?= ../work/$(SOC)
@@ -43,7 +44,7 @@ build_dir :=$(O)
 FREELOADER := $(build_dir)/freeloader.elf
 CONFIG_MK_REQ := $(wildcard $(CONFIG_MK))
 
-CFLAGS := -g -march=$(ARCH) -mabi=$(ABI)
+CFLAGS := -g -march=$(ARCH)$(ARCH_EXT) -mabi=$(ABI)
 CFLAGS += -DDDR_BASE=$(DDR_BASE) -DFLASH_BASE=$(FLASH_BASE) \
 		-DFLASH_SIZE=$(FLASH_SIZE) -DCACHE_CTRL=$(CACHE_CTRL) \
 		-DENABLE_SMP=$(ENABLE_SMP) -DENABLE_L2=$(ENABLE_L2) \

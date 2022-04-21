@@ -52,6 +52,9 @@
 /* CSR macros */
 #define CSR_MCACHE_CTL      0x7CA
 #define CSR_MSMPCFG_INFO    0x7F7
+#define CSR_IREGION_BASE    0x7F7
+#define CSR_MCFG_INFO       0xFC2
+
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -67,19 +70,41 @@ _start:
     /* Disable interrupt */
     csrc mstatus, 0x8
 
+#ifdef __riscv_vector
+    /* enable rvv */
+    li t1, 0x200
+    csrs mstatus, t1
+#endif
+
 _get_smpbase:
 #if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
     /* If smp probe failed, goto _try_smp_fail,
      * directly skip steps to enable smp and l2 */
     la t0, _try_smp_fail
     csrw mtvec, t0
+    /* check whether iregion present */
+    csrr t0, CSR_MCFG_INFO
+    li t1, 0x10000
+    and t0, t0, t1
+    bne t0, zero, _get_iregion
     /* Enable L2 Cache using HART 0 */
     // get smp ctrl base to t0
     csrr t0, CSR_MSMPCFG_INFO
     srai t0, t0, 4 // t0 = t0 >> 4
     slli t0, t0, 4 // t0 = t0 << 4
+    j _init
+_get_iregion:
+    /* get smp base from iregion base + smp offset */
+    csrr t0, CSR_IREGION_BASE
+    srai t0, t0, 10 // t0 = t0 >> 10
+    slli t0, t0, 10 // t0 = t0 << 10
+    li t1, 0x40000
+    // get smp ctrl base to t0
+    // iregion_base + 0x40000
+    add t0, t0, t1
 #endif
 
+_init:
     /* Don't use t0 here */
     /* Set exception entry */
     la t1, exc_entry

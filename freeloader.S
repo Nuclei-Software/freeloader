@@ -26,11 +26,22 @@
 
 /* Offset to DDR_BASE: 0x08300000 - 0xE0000000 */
 #define INITRD_START_BASE   (DDR_BASE + 0x8300000)
-/* Offset to DDR_BASE: 0x0E000000 - 0x10000000, 32MB */
-#define FIRMWARE_START_BASE (DDR_BASE + 0xE000000)
+
+/* Offset to DDR_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
+#ifndef AMPFW_START_OFFSET
+#define AMPFW_START_OFFSET  0xE000000
+#endif
+#ifndef AMPFW_SIZE
+#define AMPFW_SIZE          (0x00400000)
+#endif
+#ifndef AMP_START_CORE
+#define AMP_START_CORE      8
+#endif
+
+
+#define FIRMWARE_START_BASE (DDR_BASE + AMPFW_START_OFFSET)
 /* reserved 8 cores firmware space, core1 - core7, each core 4M space */
 #define AMPFW_START_BASE    (FIRMWARE_START_BASE + 0x0)
-#define AMPFW_SIZE          (0x00400000)
 
 #define AMPFW_CORE_START_BASE(core)     (AMPFW_START_BASE + (AMPFW_SIZE * (core)))
 
@@ -41,10 +52,6 @@
 #define AMPFW_C5_START_BASE AMPFW_CORE_START_BASE(4)
 #define AMPFW_C6_START_BASE AMPFW_CORE_START_BASE(5)
 #define AMPFW_C7_START_BASE AMPFW_CORE_START_BASE(6)
-
-#ifndef AMP_START_CORE
-#define AMP_START_CORE      8
-#endif
 
 #define BOOT_FLAG_MAGIC     0xCAFE5A5AUL
 #define BOOT_FLAG_COPY      0xFFA5A5FFUL

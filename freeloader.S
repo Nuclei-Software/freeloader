@@ -61,13 +61,21 @@
 #define CSR_MSMPCFG_INFO    0x7F7
 #define CSR_IREGION_BASE    0x7F7
 #define CSR_MCFG_INFO       0xFC2
-
+#define CSR_MTLB_CTL        0x7DD
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
-#define CSR_CACHE_ENABLE    0x10001
+/* ICache Cache Enable, ICache Prefetch Enable */
+#define CSR_CACHE_ENABLE    0x100C1
 #else
 #define CSR_CACHE_ENABLE    CACHE_CTRL
+#endif
+
+#ifndef TLB_CTRL
+/* ITLB/DTLB Cancel Enable */
+#define CSR_TLB_ENABLE      0x30
+#else
+#define CSR_TLB_ENABLE      TLB_CTRL
 #endif
 
 
@@ -141,6 +149,10 @@ _enable_l1:
     /* Enable I/D Cache */
     li t0, CSR_CACHE_ENABLE
     csrs CSR_MCACHE_CTL, t0
+
+    /* Enable ITLB/DTLB Cancel */
+    li t0, CSR_TLB_ENABLE
+    csrs CSR_MTLB_CTL, t0
 
 _check_hart:
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */

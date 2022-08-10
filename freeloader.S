@@ -62,10 +62,11 @@
 #define CSR_IREGION_BASE    0x7F7
 #define CSR_MCFG_INFO       0xFC2
 #define CSR_MTLB_CTL        0x7DD
+#define CSR_MMISC_CTL       0x7D0
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
-/* ICache Cache Enable, ICache Prefetch Enable */
+/* ICache Cache Enable, ICache Prefetch Enable, ICache Cancel Enable */
 #define CSR_CACHE_ENABLE    0x100C1
 #else
 #define CSR_CACHE_ENABLE    CACHE_CTRL
@@ -136,6 +137,10 @@ _enable_smp:
 
 _enable_l2:
 #if defined(ENABLE_L2) && ENABLE_L2 == 1
+    // set cluster cache way enable to 0
+    // to make all cluster memory as l2 cache
+    li t1, 0
+    sw t1, 0xd8(t0)
     // set l2 ctrl = 0x1
     li t1, 1
     sw t1, 0x10(t0)
@@ -157,7 +162,7 @@ _enable_l1:
 _check_hart:
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */
     csrr a0, mhartid
-	beq a0, zero, _copy_image
+    beq a0, zero, _copy_image
 
 _wait_copy:
     /* wait for some loops for flag cleared */
@@ -375,6 +380,9 @@ _copy_image:
     fence.i
 
 _start_boot:
+    /* Enable BPU, since 2022.08, BPU is disabled on boot, need to set 1 when bringup */
+    li a0, 0x8
+    csrs CSR_MMISC_CTL, a0
     /**
      * prepare opensbi entry arguments
      * hartid via a0 register

@@ -83,6 +83,95 @@
 .global _start
 .section .text
 _start:
+    /* Disable I/D Cache */
+    li t0, CSR_CACHE_ENABLE
+    csrc CSR_MCACHE_CTL, t0
+
+    /* Set exception entry */
+    la t0, exc_entry
+    csrw mtvec, t0
+
+    /* Config ddr */
+    li a5,268537856
+    sw zero,20(a5)
+    li a4,268537856
+.L2:
+    lw a5,20(a4)
+    andi a5,a5,2
+    beqz a5,.L2
+    li a5,134258688
+    addiw a5,a5,-765
+    sw a5,512(a4)
+    li a5,270336
+    sw zero,516(a4)
+    addiw a5,a5,-912
+    sw a5,520(a4)
+    li a5,24
+    sw a5,524(a4)
+    li a5,-2147483648
+    addiw a5,a5,84
+    sw a5,528(a4)
+    li a5,520556544
+    addiw a5,a5,-1529
+    sw a5,532(a4)
+    li a5,289738752
+    li a2,8192
+    addiw a5,a5,530
+    sw a5,536(a4)
+    addiw a3,a2,48
+    li a5,28672
+    sw a3,540(a4)
+    addiw a3,a5,-254
+    sw a3,544(a4)
+    li a3,40960
+    addiw a3,a3,-1639
+    li a1,4096
+    sw a3,548(a4)
+    addiw a1,a1,-839
+    sw a1,552(a4)
+    li a1,-1879048192
+    sw zero,556(a4)
+    addiw a1,a1,4
+    sw a1,560(a4)
+    li a1,50528256
+    addiw a1,a1,771
+    sw a1,564(a4)
+    sw a1,568(a4)
+    li a1,262144
+    addiw a1,a1,19
+    sw a1,572(a4)
+    li a1,8
+    sw a1,608(a4)
+    li a1,255
+    sw a1,624(a4)
+    addiw a2,a2,546
+    sw a2,628(a4)
+    sw a3,632(a4)
+    li a3,16384
+    addiw a3,a3,-384
+    sw a3,680(a4)
+    li a3,401408
+    addiw a3,a3,-1408
+    sw a3,684(a4)
+    addiw a5,a5,1911
+    sw a5,816(a4)
+    li a5,5
+    sw a5,824(a4)
+    li a5,1
+    sw a5,516(a4)
+    li a4,268537856
+.L3:
+    lw a5,516(a4)
+    andi a5,a5,256
+    beqz a5,.L3
+
+    /* config qspi reg
+     * 0x10014064 = 0x130009
+     */
+    li      a5,1245184
+    li      a4,268517376
+    addiw   a5,a5,9
+    sw      a5,100(a4)
     /* Disable interrupt */
     csrc mstatus, 0x8
 
@@ -121,10 +210,6 @@ _get_iregion:
 #endif
 
 _init:
-    /* Don't use t0 here */
-    /* Set exception entry */
-    la t1, exc_entry
-    csrw mtvec, t1
 
 _enable_smp:
 #if defined(ENABLE_SMP) && ENABLE_SMP == 1

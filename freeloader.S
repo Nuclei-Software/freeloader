@@ -91,6 +91,7 @@ _start:
     la t0, exc_entry
     csrw mtvec, t0
 
+#ifdef SOC_FSL91030M
     /* Config ddr */
     li a5,268537856
     sw zero,20(a5)
@@ -172,6 +173,7 @@ _start:
     li      a4,268517376
     addiw   a5,a5,9
     sw      a5,100(a4)
+#endif
     /* Disable interrupt */
     csrc mstatus, 0x8
 

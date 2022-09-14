@@ -69,6 +69,15 @@ $(build_dir)/opensbi.bin: $(OPENSBI_BIN)
 $(build_dir)/fdt.dtb: $(DTB)
 	cp $< $@
 
+# define SOC macro
+ifeq ($(SOC),fsl91030m)
+CFLAGS += -DSOC_FSL91030M
+else ifeq ($(SOC),demosoc)
+CFLAGS += -DSOC_DEMO
+else ifeq ($(SOC),evalsoc)
+CFLAGS += -DSOC_EVAL
+endif
+
 # AMP Core Image binaries
 ifneq ($(CORE1_APP_BIN),)
 FREELOADER_BUILD_REQS += ampfw_core1.bin

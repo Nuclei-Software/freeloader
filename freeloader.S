@@ -79,6 +79,9 @@
 #define CSR_TLB_ENABLE      TLB_CTRL
 #endif
 
+#ifndef SPFL1DCTRL1
+#define SPFL1DCTRL1         0x0
+#endif
 
 .global _start
 .section .text
@@ -114,9 +117,15 @@ _get_iregion:
     csrr t0, CSR_IREGION_BASE
     srai t0, t0, 10 // t0 = t0 >> 10
     slli t0, t0, 10 // t0 = t0 << 10
-    li t1, 0x40000
+    // get iregion iinfo base address to t2
+    li t1, 0x100
+    add t2, t0, t1
+    // set prefetch ctrl register spfl1dctrl1
+    li t1, SPFL1DCTRL1
+    sw t1, 0x0(t2)
     // get smp ctrl base to t0
     // iregion_base + 0x40000
+    li t1, 0x40000
     add t0, t0, t1
 #endif
 

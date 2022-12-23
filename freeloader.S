@@ -400,6 +400,22 @@ _copy_image:
     fence.i
 
 _start_boot:
+    /* Set mcache_ctl csr */
+#ifdef MCACHE_CTL
+    li a0, MCACHE_CTL
+    csrw CSR_MCACHE_CTL, a0
+#endif
+    /* Set mtlb_ctl csr */
+#ifdef MTLB_CTL
+    li a0, MTLB_CTL
+    csrw CSR_MTLB_CTL, a0
+#endif
+    /* Set mmisc_ctl csr */
+#ifdef MMISC_CTL
+    li a0, MMISC_CTL
+    csrw CSR_MMISC_CTL, a0
+#endif
+
     /* Enable BPU, since 2022.08, BPU is disabled on boot, need to set 1 when bringup */
     li a0, 0x8
     csrs CSR_MMISC_CTL, a0

@@ -95,7 +95,7 @@ _get_smpbase:
 #if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
     /* If smp probe failed, goto _try_smp_fail,
      * directly skip steps to enable smp and l2 */
-    la t0, _try_smp_fail
+    lla t0, _try_smp_fail
     csrw mtvec, t0
     /* check whether iregion present */
     csrr t0, CSR_MCFG_INFO
@@ -143,7 +143,7 @@ _get_iregion:
 _init:
     /* Don't use t0 here */
     /* Set exception entry */
-    la t1, exc_entry
+    lla t1, exc_entry
     csrw mtvec, t1
 
 _enable_smp:
@@ -188,7 +188,7 @@ _wait_copy:
     /* wait for some loops for flag cleared */
     li a0, 20000
     li a1, 0
-    la t0, _dead_loop_amp
+    lla t0, _dead_loop_amp
     csrw mtvec, t0
 _loop_wait:
     nop
@@ -249,8 +249,8 @@ _copy_image:
 
     /* move _copy_data() to DDR region */
     li t0, COPY_START_BASE
-    la t1, _copy_data
-    la t2, _copy_data + 4 * 8
+    lla t1, _copy_data
+    addi t2, t1, 32
     call _copy_data
 
     /* Flush cache after copy_data function copied to DDR */
@@ -260,8 +260,8 @@ _copy_image:
 
     /* move data from NOR to DDR */
     li t0, OPENSBI_START_BASE
-    la t1, sbi
-    la t2, _end_sbi
+    lla t1, sbi
+    lla t2, _end_sbi
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -270,8 +270,8 @@ _copy_image:
 
     /* U-Boot section */
     li t0, UBOOT_START_BASE
-    la t1, uboot
-    la t2, _end_uboot
+    lla t1, uboot
+    lla t2, _end_uboot
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -280,8 +280,8 @@ _copy_image:
 
     /* FDT section */
     li t0, FDT_START_BASE
-    la t1, fdt
-    la t2, _end_fdt
+    lla t1, fdt
+    lla t2, _end_fdt
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -291,8 +291,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE1)
     /* AMP Image Firmware section */
     li t0, AMPFW_C1_START_BASE
-    la t1, ampfwc1
-    la t2, _end_ampfwc1
+    lla t1, ampfwc1
+    lla t2, _end_ampfwc1
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -303,8 +303,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE2)
     /* AMP Image Firmware section */
     li t0, AMPFW_C2_START_BASE
-    la t1, ampfwc2
-    la t2, _end_ampfwc2
+    lla t1, ampfwc2
+    lla t2, _end_ampfwc2
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -315,8 +315,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE3)
     /* AMP Image Firmware section */
     li t0, AMPFW_C3_START_BASE
-    la t1, ampfwc3
-    la t2, _end_ampfwc3
+    lla t1, ampfwc3
+    lla t2, _end_ampfwc3
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -327,8 +327,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE4)
     /* AMP Image Firmware section */
     li t0, AMPFW_C4_START_BASE
-    la t1, ampfwc4
-    la t2, _end_ampfwc4
+    lla t1, ampfwc4
+    lla t2, _end_ampfwc4
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -339,8 +339,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE5)
     /* AMP Image Firmware section */
     li t0, AMPFW_C5_START_BASE
-    la t1, ampfwc5
-    la t2, _end_ampfwc5
+    lla t1, ampfwc5
+    lla t2, _end_ampfwc5
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -351,8 +351,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE6)
     /* AMP Image Firmware section */
     li t0, AMPFW_C6_START_BASE
-    la t1, ampfwc6
-    la t2, _end_ampfwc6
+    lla t1, ampfwc6
+    lla t2, _end_ampfwc6
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -363,8 +363,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE7)
     /* AMP Image Firmware section */
     li t0, AMPFW_C7_START_BASE
-    la t1, ampfwc7
-    la t2, _end_ampfwc7
+    lla t1, ampfwc7
+    lla t2, _end_ampfwc7
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -375,8 +375,8 @@ _copy_image:
 #ifdef BOOT_MODE_FLASH
     /* Kernel section */
     li t0, KERNEL_START_BASE
-    la t1, kernel
-    la t2, _end_kernel
+    lla t1, kernel
+    lla t2, _end_kernel
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -385,8 +385,8 @@ _copy_image:
 
     /* Initrd section */
     li t0, INITRD_START_BASE
-    la t1, initrd
-    la t2, _end_initrd
+    lla t1, initrd
+    lla t2, _end_initrd
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -453,14 +453,14 @@ _loop:
 /* Fall back to _start when exception happened */
 .align 6
 exc_entry:
-    la a0, _start
+    lla a0, _start
     csrw mepc, a0
     mret
 
 /* Fall back to _enable_l1 when smp probe failed happened */
 .align 6
 _try_smp_fail:
-    la a0, _enable_l1
+    lla a0, _enable_l1
     csrw mepc, a0
     mret
 
@@ -468,7 +468,7 @@ _try_smp_fail:
 // dead loop, nop here
 _dead_loop_amp:
 _deadloop:
-    // la t0, _dead_loop_amp
+    // lla t0, _dead_loop_amp
     // csrw mtvec, t0
     csrc mstatus, 0x8
     li t0, CSR_CACHE_ENABLE

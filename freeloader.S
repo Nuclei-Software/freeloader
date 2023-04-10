@@ -10,10 +10,12 @@
 
 /* Max to 1MB */
 #define OPENSBI_START_BASE  (DDR_BASE + 0x0)
+
+#define OPTEEOS_START_BASE  (DDR_BASE + 0x800000)
 /* Max to 14MB */
-#define UBOOT_START_BASE    (DDR_BASE + 0x200000)
+#define UBOOT_START_BASE    (DDR_BASE + 0x1000000)
 /* Offset to DDR_BASE: 0x1000000 - 0x8000000 */
-#define KERNEL_START_BASE   (DDR_BASE + 0x1000000)
+#define KERNEL_START_BASE   (DDR_BASE + 0x1400000)
 /* Offset to DDR_BASE: 0x8000000, Max to 1MB */
 #define FDT_START_BASE      (DDR_BASE + 0x8000000)
 /* Offset to DDR_BASE: 0x8100000, Max to 4KB */
@@ -278,6 +280,16 @@ _copy_image:
     //call _copy_data
     jalr ra, 0(t3)
 
+    /* optee-os section */
+    li t0, OPTEEOS_START_BASE
+    la t1, opteeos
+    la t2, _end_opteeos
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, 0(t3)
+
     /* FDT section */
     li t0, FDT_START_BASE
     la t1, fdt
@@ -481,6 +493,12 @@ _deadloop:
 .type sbi, @object
 sbi:
 .incbin "opensbi.bin"
+
+.section .opteeospayload
+.global opteeos
+.type opteeos, @object
+opteeos:
+.incbin "opteeos.bin"
 
 .section .ubootpayload
 .global uboot

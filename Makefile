@@ -11,6 +11,7 @@ O ?= build/$(SOC)
 
 OPENSBI_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/$(SOC)/firmware/fw_jump.bin
 UBOOT_BIN ?= $(BUILD_ROOT)/u-boot/u-boot.bin
+OPTEEOS_BIN ?= $(BUILD_ROOT)/optee/optee_os/core/tee-pager_v2.bin
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
 KERNEL_BIN ?= $(BUILD_ROOT)/boot/uImage.lz4
 INITRD_BIN ?= $(BUILD_ROOT)/boot/uInitrd.lz4
@@ -86,7 +87,7 @@ endif
 
 # memory.lds need to be the first requirement
 FREELOADER_BUILD_REQS := memory.lds
-FREELOADER_BUILD_REQS += u-boot.bin opensbi.bin fdt.dtb
+FREELOADER_BUILD_REQS += u-boot.bin opensbi.bin fdt.dtb opteeos.bin
 
 all: $(build_dir)/freeloader.bin $(build_dir)/freeloader.dasm
 
@@ -97,6 +98,9 @@ $(build_dir)/opensbi.bin: $(OPENSBI_BIN)
 	cp $< $@
 
 $(build_dir)/fdt.dtb: $(DTB)
+	cp $< $@
+
+$(build_dir)/opteeos.bin: $(OPTEEOS_BIN)
 	cp $< $@
 
 # AMP Core Image binaries

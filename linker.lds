@@ -28,6 +28,10 @@ SECTIONS
     . = ALIGN(8);
     PROVIDE (_end_sbi = .);
 
+    KEEP (*(.opteeospayload))
+    . = ALIGN(8);
+    PROVIDE (_end_opteeos = .);
+
     KEEP (*(.ubootpayload))
     . = ALIGN(8);
     PROVIDE (_end_uboot = .);

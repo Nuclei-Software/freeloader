@@ -83,6 +83,12 @@
 #define CSR_TLB_ENABLE      TLB_CTRL
 #endif
 
+#if __riscv_xlen == 64
+#define LWU                 lwu
+#else
+#define LWU                 lw
+#endif
+
 .global _start
 .section .text
 _start:
@@ -200,7 +206,7 @@ _loop_wait:
     bne a0, a1, _loop_wait
 
     li t0, BOOT_FLAG_BASE
-    lw t0, 0(t0)
+    LWU t0, 0(t0)
     li t1, BOOT_FLAG_MAGIC
     beq t0, t1, _start_smporamp
     j _wait_copy
@@ -220,7 +226,7 @@ _start_amp:
     mul t1, t1, t2
     add t0, t0, t1
     // * (REBOOT_CNT_BASE + hartid * 4) += 1
-    lw t1, 0(t0)
+    LWU t1, 0(t0)
     addi t1, t1, 1
     sw t1, 0(t0)
     fence

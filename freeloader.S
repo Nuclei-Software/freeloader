@@ -11,7 +11,11 @@
 /* Max to 1MB */
 #define OPENSBI_START_BASE  (DDR_BASE + 0x0)
 /* Max to 14MB */
+#if __riscv_xlen == 32
+#define UBOOT_START_BASE    (DDR_BASE + 0x400000)
+#else
 #define UBOOT_START_BASE    (DDR_BASE + 0x200000)
+#endif
 /* Offset to DDR_BASE: 0x1000000 - 0x8000000 */
 #define KERNEL_START_BASE   (DDR_BASE + 0x1000000)
 /* Offset to DDR_BASE: 0x8000000, Max to 1MB */
@@ -196,7 +200,7 @@ _loop_wait:
     bne a0, a1, _loop_wait
 
     li t0, BOOT_FLAG_BASE
-    lwu t0, 0(t0)
+    lw t0, 0(t0)
     li t1, BOOT_FLAG_MAGIC
     beq t0, t1, _start_smporamp
     j _wait_copy
@@ -216,7 +220,7 @@ _start_amp:
     mul t1, t1, t2
     add t0, t0, t1
     // * (REBOOT_CNT_BASE + hartid * 4) += 1
-    lwu t1, 0(t0)
+    lw t1, 0(t0)
     addi t1, t1, 1
     sw t1, 0(t0)
     fence
@@ -443,10 +447,17 @@ _start_boot:
 .align 4
 _copy_data:
 _loop:
+#if __riscv_xlen == 64
     ld t3, 0(t1)
     sd t3, 0(t0)
     addi t0, t0, 8
     addi t1, t1, 8
+#else
+    lw t3, 0(t1)
+    sw t3, 0(t0)
+    addi t0, t0, 4
+    addi t1, t1, 4
+#endif
     blt t1, t2, _loop
     ret
 

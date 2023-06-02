@@ -67,6 +67,8 @@
 #define CSR_MCFG_INFO       0xFC2
 #define CSR_MTLB_CTL        0x7DD
 #define CSR_MMISC_CTL       0x7D0
+#define CSR_MILM_CTL        0x7C0
+#define CSR_MDLM_CTL        0x7C1
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -188,6 +190,26 @@ _enable_l1:
     /* Enable ITLB/DTLB Cancel */
     li t0, CSR_TLB_ENABLE
     csrs CSR_MTLB_CTL, t0
+
+_disable_ilm:
+    /* check whether ilm present */
+    csrr t0, CSR_MCFG_INFO
+    li t1, 0x80
+    and t0, t0, t1
+    beq t0, zero, _disable_dlm
+    /* disable ilm */
+    li t0, 0x1
+    csrc CSR_MILM_CTL, t0
+
+_disable_dlm:
+    /* check whether dlm present */
+    csrr t0, CSR_MCFG_INFO
+    li t1, 0x100
+    and t0, t0, t1
+    beq t0, zero, _check_hart
+    /* disable dlm */
+    li t0, 0x1
+    csrc CSR_MDLM_CTL, t0
 
 _check_hart:
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */

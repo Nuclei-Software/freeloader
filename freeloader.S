@@ -63,6 +63,7 @@
 #define CSR_MCFG_INFO       0xFC2
 #define CSR_MTLB_CTL        0x7DD
 #define CSR_MMISC_CTL       0x7D0
+#define CSR_CCM_SUEN        0x7CE
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -78,6 +79,8 @@
 #else
 #define CSR_TLB_ENABLE      TLB_CTRL
 #endif
+
+#define CCM_SUEN_ENABLE     0x03030303
 
 .global _start
 .section .text
@@ -178,6 +181,10 @@ _enable_l1:
     /* Enable ITLB/DTLB Cancel */
     li t0, CSR_TLB_ENABLE
     csrs CSR_MTLB_CTL, t0
+
+    /* Enable S/U mode CCM operation */
+    li t0, CCM_SUEN_ENABLE
+    csrs CSR_CCM_SUEN, t0
 
 _check_hart:
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */

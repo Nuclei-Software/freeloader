@@ -81,6 +81,14 @@
 #define CSR_TLB_ENABLE      TLB_CTRL
 #endif
 
+
+#define CSR_MATTRI0_BASE    0x7F5
+#define CSR_MATTRI0_MASK    0x7F6
+
+#define SECSHARE_REGION_VALID              (1 << 0)
+#define SECSHARE_ACCESS                    (1 << 3)
+#define SECSHARE_REGION_ATTR               (SECSHARE_REGION_VALID | SECSHARE_ACCESS)
+
 .global _start
 .section .text
 _start:
@@ -269,6 +277,18 @@ _copy_image:
     li t3, COPY_START_BASE
     //call _copy_data
     jalr ra, 0(t3)
+
+/*
+ * opensbi,optee are secure memory, but optee share memory is non-secure memory.
+ * set uboot,kernel,fdt to non-secure memory.
+ * mattr memory area: 0xa1000000- 0xa9000000
+ * mask:0xFF000000, base:0xa1000000
+ */
+    li a0, 0xFF000000
+    csrw CSR_MATTRI0_MASK, a0
+    li a0, 0xA1000000
+    addi a0, a0, SECSHARE_REGION_ATTR
+    csrw CSR_MATTRI0_BASE, a0
 
     /* U-Boot section */
     li t0, UBOOT_START_BASE

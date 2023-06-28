@@ -82,8 +82,8 @@
 #endif
 
 
-#define CSR_MATTRI0_BASE    0x7F5
-#define CSR_MATTRI0_MASK    0x7F6
+#define CSR_MATTRI3_BASE    0x7FB
+#define CSR_MATTRI3_MASK    0x7FC
 
 #define SECSHARE_REGION_VALID              (1 << 0)
 #define SECSHARE_ACCESS                    (1 << 3)
@@ -266,7 +266,6 @@ _copy_image:
     /* Flush cache after copy_data function copied to DDR */
     fence
     fence.i
-    sfence.vma
 
     /* move data from NOR to DDR */
     li t0, OPENSBI_START_BASE
@@ -278,32 +277,31 @@ _copy_image:
     //call _copy_data
     jalr ra, 0(t3)
 
-/*
- * opensbi,optee are secure memory, but optee share memory is non-secure memory.
- * set uboot,kernel,fdt to non-secure memory.
- * mattr memory area: 0xa1000000- 0xa9000000
- * mask:0xFF000000, base:0xa1000000
- */
-    li a0, 0xFF000000
-    csrw CSR_MATTRI0_MASK, a0
-    li a0, 0xA1000000
-    addi a0, a0, SECSHARE_REGION_ATTR
-    csrw CSR_MATTRI0_BASE, a0
-
-    /* U-Boot section */
-    li t0, UBOOT_START_BASE
-    la t1, uboot
-    la t2, _end_uboot
+    /* optee-os section */
+    li t0, OPTEEOS_START_BASE
+    la t1, opteeos
+    la t2, _end_opteeos
 
     /* call faraway function */
     li t3, COPY_START_BASE
     //call _copy_data
     jalr ra, 0(t3)
+    /*
+     * set uboot,kernel,fdt to non-secure memory.
+     * mattr memory area: 0xa0000000- 0xb0000000
+     * mask:0xF0000000, base:0xa0000000
+     */
+    fence
+    li a0, 0xF0000000
+    csrw CSR_MATTRI3_MASK, a0
+    li a0, 0xA0000000
+    addi a0, a0, SECSHARE_REGION_ATTR
+    csrw CSR_MATTRI3_BASE, a0
 
-    /* optee-os section */
-    li t0, OPTEEOS_START_BASE
-    la t1, opteeos
-    la t2, _end_opteeos
+    /* U-Boot section */
+    li t0, UBOOT_START_BASE
+    la t1, uboot
+    la t2, _end_uboot
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -425,11 +423,8 @@ _copy_image:
     //call _copy_data
     jalr ra, t3, 0
 #endif
-
-    /* Flush cache */
     fence
-    sfence.vma
-    fence.i
+    csrw CSR_MATTRI3_BASE, x0
 
 _start_boot:
     /* Set mcache_ctl csr */
@@ -465,6 +460,17 @@ _start_boot:
     li t1, BOOT_FLAG_MAGIC
     sw t1, 0(t0)
     fence
+
+    /*
+     * set fdt memory as share memory
+     * FDT_START_BASE ~ FDT_START_BASE + 256K
+     * base:0xA8000000 ~ 0xA8040000
+     */
+    li a0, 0xFFF00000
+    csrw CSR_MATTRI3_MASK, a0
+    li a0, FDT_START_BASE
+    addi a0, a0, SECSHARE_REGION_ATTR
+    csrw CSR_MATTRI3_BASE, a0
 
     /* Goto OpenSBI */
     li t0, OPENSBI_START_BASE

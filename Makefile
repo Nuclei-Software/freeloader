@@ -12,8 +12,8 @@ O ?= build/$(SOC)
 OPENSBI_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/$(SOC)/firmware/fw_jump.bin
 UBOOT_BIN ?= $(BUILD_ROOT)/u-boot/u-boot.bin
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
-KERNEL_BIN ?= $(BUILD_ROOT)/boot/uImage.lz4
-INITRD_BIN ?= $(BUILD_ROOT)/boot/uInitrd.lz4
+KERNEL_BIN ?= $(BUILD_ROOT)/boot/Image
+INITRD_BIN ?= $(BUILD_ROOT)/boot/rootfs.cpio
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=
 CORE3_APP_BIN ?=
@@ -53,7 +53,7 @@ build_dir :=$(O)
 FREELOADER := $(build_dir)/freeloader.elf
 CONFIG_MK_REQ := $(wildcard $(CONFIG_MK))
 
-CFLAGS := -g -march=$(ARCH)$(ARCH_EXT) -mabi=$(ABI) -fno-pie -static
+CFLAGS := -g -march=$(ARCH)$(ARCH_EXT) -mabi=$(ABI) -misa-spec=2.2 -fno-pie -static
 CFLAGS += -DDDR_BASE=$(DDR_BASE) -DFLASH_BASE=$(FLASH_BASE) \
 		-DFLASH_SIZE=$(FLASH_SIZE) -DCACHE_CTRL=$(CACHE_CTRL) -DTLB_CTRL=$(TLB_CTRL) \
 		-DENABLE_SMP=$(ENABLE_SMP) -DENABLE_L2=$(ENABLE_L2)  \
@@ -86,7 +86,7 @@ endif
 
 # memory.lds need to be the first requirement
 FREELOADER_BUILD_REQS := memory.lds
-FREELOADER_BUILD_REQS += u-boot.bin opensbi.bin fdt.dtb
+FREELOADER_BUILD_REQS += kernel.bin fdt.dtb
 
 all: $(build_dir)/freeloader.bin $(build_dir)/freeloader.dasm
 
@@ -143,8 +143,6 @@ $(build_dir)/ampfw_core7.bin: $(CORE7_APP_BIN)
 	cp $< $@
 endif
 
-ifeq ($(BOOT_MODE),flash)
-FREELOADER_BUILD_REQS += kernel.bin initrd.bin
 CFLAGS += -DBOOT_MODE_FLASH
 
 $(build_dir)/kernel.bin: $(KERNEL_BIN)
@@ -152,7 +150,6 @@ $(build_dir)/kernel.bin: $(KERNEL_BIN)
 
 $(build_dir)/initrd.bin: $(INITRD_BIN)
 	cp $< $@
-endif
 
 FREELOADER_REQS := $(addprefix $(build_dir)/, $(FREELOADER_BUILD_REQS)) freeloader.S linker.lds
 

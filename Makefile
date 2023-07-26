@@ -143,6 +143,7 @@ $(build_dir)/ampfw_core7.bin: $(CORE7_APP_BIN)
 	cp $< $@
 endif
 
+# non-mmu Kernel need to be passed
 CFLAGS += -DBOOT_MODE_FLASH
 
 $(build_dir)/kernel.bin: $(KERNEL_BIN)

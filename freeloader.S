@@ -9,7 +9,16 @@
 #endif
 
 /* Max to 1MB */
-/* Offset to DDR_BASE: 0x0000000 - 0x8000000 */
+#define OPENSBI_START_BASE  (DDR_BASE + 0x0)
+/* Max to 14MB */
+#if __riscv_xlen == 32
+#define UBOOT_START_BASE    (DDR_BASE + 0x400000)
+#else
+#define UBOOT_START_BASE    (DDR_BASE + 0x200000)
+#endif
+/* Offset to DDR_BASE: 0x1000000 - 0x8000000 */
+//#define KERNEL_START_BASE   (DDR_BASE + 0x1000000)
+// For NO MMU
 #define KERNEL_START_BASE   (DDR_BASE + 0x0000000)
 /* Offset to DDR_BASE: 0x8000000, Max to 1MB */
 #define FDT_START_BASE      (DDR_BASE + 0x8000000)
@@ -60,7 +69,8 @@
 #define CSR_MCFG_INFO       0xFC2
 #define CSR_MTLB_CTL        0x7DD
 #define CSR_MMISC_CTL       0x7D0
-#define CSR_CCM_SUEN        0x7CE
+#define CSR_MILM_CTL        0x7C0
+#define CSR_MDLM_CTL        0x7C1
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -77,7 +87,11 @@
 #define CSR_TLB_ENABLE      TLB_CTRL
 #endif
 
-#define CCM_SUEN_ENABLE     0x03030303
+#if __riscv_xlen == 64
+#define LWU                 lwu
+#else
+#define LWU                 lw
+#endif
 
 .global _start
 .section .text
@@ -95,7 +109,7 @@ _get_smpbase:
 #if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
     /* If smp probe failed, goto _try_smp_fail,
      * directly skip steps to enable smp and l2 */
-    la t0, _try_smp_fail
+    lla t0, _try_smp_fail
     csrw mtvec, t0
     /* check whether iregion present */
     csrr t0, CSR_MCFG_INFO
@@ -143,7 +157,7 @@ _get_iregion:
 _init:
     /* Don't use t0 here */
     /* Set exception entry */
-    la t1, exc_entry
+    lla t1, exc_entry
     csrw mtvec, t1
 
 _enable_smp:
@@ -179,9 +193,25 @@ _enable_l1:
     li t0, CSR_TLB_ENABLE
     csrs CSR_MTLB_CTL, t0
 
-    /* Enable S/U mode CCM operation */
-    li t0, CCM_SUEN_ENABLE
-    csrs CSR_CCM_SUEN, t0
+_disable_ilm:
+    /* check whether ilm present */
+    csrr t0, CSR_MCFG_INFO
+    li t1, 0x80
+    and t0, t0, t1
+    beq t0, zero, _disable_dlm
+    /* disable ilm */
+    li t0, 0x1
+    csrc CSR_MILM_CTL, t0
+
+_disable_dlm:
+    /* check whether dlm present */
+    csrr t0, CSR_MCFG_INFO
+    li t1, 0x100
+    and t0, t0, t1
+    beq t0, zero, _check_hart
+    /* disable dlm */
+    li t0, 0x1
+    csrc CSR_MDLM_CTL, t0
 
 _check_hart:
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */
@@ -192,7 +222,7 @@ _wait_copy:
     /* wait for some loops for flag cleared */
     li a0, 20000
     li a1, 0
-    la t0, _dead_loop_amp
+    lla t0, _dead_loop_amp
     csrw mtvec, t0
 _loop_wait:
     nop
@@ -200,7 +230,7 @@ _loop_wait:
     bne a0, a1, _loop_wait
 
     li t0, BOOT_FLAG_BASE
-    lwu t0, 0(t0)
+    LWU t0, 0(t0)
     li t1, BOOT_FLAG_MAGIC
     beq t0, t1, _start_smporamp
     j _wait_copy
@@ -220,7 +250,7 @@ _start_amp:
     mul t1, t1, t2
     add t0, t0, t1
     // * (REBOOT_CNT_BASE + hartid * 4) += 1
-    lwu t1, 0(t0)
+    LWU t1, 0(t0)
     addi t1, t1, 1
     sw t1, 0(t0)
     fence
@@ -253,8 +283,8 @@ _copy_image:
 
     /* move _copy_data() to DDR region */
     li t0, COPY_START_BASE
-    la t1, _copy_data
-    la t2, _copy_data + 4 * 8
+    lla t1, _copy_data
+    addi t2, t1, 32
     call _copy_data
 
     /* Flush cache after copy_data function copied to DDR */
@@ -262,12 +292,33 @@ _copy_image:
     fence.i
     sfence.vma
 
+// Not work for no-mmu linux
+#if 0
     /* move data from NOR to DDR */
+    li t0, OPENSBI_START_BASE
+    lla t1, sbi
+    lla t2, _end_sbi
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, 0(t3)
+
+    /* U-Boot section */
+    li t0, UBOOT_START_BASE
+    lla t1, uboot
+    lla t2, _end_uboot
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, 0(t3)
+#endif
 
     /* FDT section */
     li t0, FDT_START_BASE
-    la t1, fdt
-    la t2, _end_fdt
+    lla t1, fdt
+    lla t2, _end_fdt
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -277,8 +328,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE1)
     /* AMP Image Firmware section */
     li t0, AMPFW_C1_START_BASE
-    la t1, ampfwc1
-    la t2, _end_ampfwc1
+    lla t1, ampfwc1
+    lla t2, _end_ampfwc1
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -289,8 +340,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE2)
     /* AMP Image Firmware section */
     li t0, AMPFW_C2_START_BASE
-    la t1, ampfwc2
-    la t2, _end_ampfwc2
+    lla t1, ampfwc2
+    lla t2, _end_ampfwc2
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -301,8 +352,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE3)
     /* AMP Image Firmware section */
     li t0, AMPFW_C3_START_BASE
-    la t1, ampfwc3
-    la t2, _end_ampfwc3
+    lla t1, ampfwc3
+    lla t2, _end_ampfwc3
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -313,8 +364,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE4)
     /* AMP Image Firmware section */
     li t0, AMPFW_C4_START_BASE
-    la t1, ampfwc4
-    la t2, _end_ampfwc4
+    lla t1, ampfwc4
+    lla t2, _end_ampfwc4
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -325,8 +376,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE5)
     /* AMP Image Firmware section */
     li t0, AMPFW_C5_START_BASE
-    la t1, ampfwc5
-    la t2, _end_ampfwc5
+    lla t1, ampfwc5
+    lla t2, _end_ampfwc5
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -337,8 +388,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE6)
     /* AMP Image Firmware section */
     li t0, AMPFW_C6_START_BASE
-    la t1, ampfwc6
-    la t2, _end_ampfwc6
+    lla t1, ampfwc6
+    lla t2, _end_ampfwc6
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -349,8 +400,8 @@ _copy_image:
 #if defined(WITH_AMPFW_CORE7)
     /* AMP Image Firmware section */
     li t0, AMPFW_C7_START_BASE
-    la t1, ampfwc7
-    la t2, _end_ampfwc7
+    lla t1, ampfwc7
+    lla t2, _end_ampfwc7
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -358,25 +409,30 @@ _copy_image:
     jalr ra, t3, 0
 #endif
 
+#ifdef BOOT_MODE_FLASH
     /* Kernel section */
     li t0, KERNEL_START_BASE
-    la t1, kernel
-    la t2, _end_kernel
+    lla t1, kernel
+    lla t2, _end_kernel
 
     /* call faraway function */
     li t3, COPY_START_BASE
     //call _copy_data
     jalr ra, t3, 0
 
+#if 0
     /* Initrd section */
-//    li t0, INITRD_START_BASE
-//    la t1, initrd
-//    la t2, _end_initrd
-//
-//    /* call faraway function */
-//    li t3, COPY_START_BASE
-//    //call _copy_data
-//    jalr ra, t3, 0
+    li t0, INITRD_START_BASE
+    lla t1, initrd
+    lla t2, _end_initrd
+
+    /* call faraway function */
+    li t3, COPY_START_BASE
+    //call _copy_data
+    jalr ra, t3, 0
+#endif
+
+#endif
 
     /* Flush cache */
     fence
@@ -418,7 +474,7 @@ _start_boot:
     sw t1, 0(t0)
     fence
 
-    /* Goto OpenSBI */
+    /* Goto Kernel */
     li t0, KERNEL_START_BASE
     jr t0
 
@@ -427,24 +483,31 @@ _start_boot:
 .align 4
 _copy_data:
 _loop:
+#if __riscv_xlen == 64
     ld t3, 0(t1)
     sd t3, 0(t0)
     addi t0, t0, 8
     addi t1, t1, 8
+#else
+    lw t3, 0(t1)
+    sw t3, 0(t0)
+    addi t0, t0, 4
+    addi t1, t1, 4
+#endif
     blt t1, t2, _loop
     ret
 
 /* Fall back to _start when exception happened */
 .align 6
 exc_entry:
-    la a0, _start
+    lla a0, _start
     csrw mepc, a0
     mret
 
 /* Fall back to _enable_l1 when smp probe failed happened */
 .align 6
 _try_smp_fail:
-    la a0, _enable_l1
+    lla a0, _enable_l1
     csrw mepc, a0
     mret
 
@@ -452,7 +515,7 @@ _try_smp_fail:
 // dead loop, nop here
 _dead_loop_amp:
 _deadloop:
-    // la t0, _dead_loop_amp
+    // lla t0, _dead_loop_amp
     // csrw mtvec, t0
     csrc mstatus, 0x8
     li t0, CSR_CACHE_ENABLE
@@ -460,17 +523,19 @@ _deadloop:
     wfi
     j _deadloop
 
-//.section .sbipayload
-//.global sbi
-//.type sbi, @object
-//sbi:
-//.incbin "opensbi.bin"
-//
-//.section .ubootpayload
-//.global uboot
-//.type uboot, @object
-//uboot:
-//.incbin "u-boot.bin"
+#if 0
+.section .sbipayload
+.global sbi
+.type sbi, @object
+sbi:
+.incbin "opensbi.bin"
+
+.section .ubootpayload
+.global uboot
+.type uboot, @object
+uboot:
+.incbin "u-boot.bin"
+#endif
 
 .section .fdtpayload
 .global fdt
@@ -534,14 +599,17 @@ ampfwc7:
 .incbin "ampfw_core7.bin"
 #endif
 
+#ifdef BOOT_MODE_FLASH
 .section .kernelpayload
 .global kernel
 .type kernel, @object
 kernel:
 .incbin "kernel.bin"
-
-//.section .initrdpayload
-//.global initrd
-//.type initrd, @object
-//initrd:
-//.incbin "initrd.bin"
+#if 0
+.section .initrdpayload
+.global initrd
+.type initrd, @object
+initrd:
+.incbin "initrd.bin"
+#endif
+#endif

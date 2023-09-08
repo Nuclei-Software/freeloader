@@ -16,8 +16,8 @@
 #else
 #define UBOOT_START_BASE    (DDR_BASE + 0x200000)
 #endif
-/* Offset to DDR_BASE: 0x1000000 - 0x8000000 */
-#define KERNEL_START_BASE   (DDR_BASE + 0x1000000)
+/* Offset to DDR_BASE: 0x3000000 - 0x8000000 */
+#define KERNEL_START_BASE   (DDR_BASE + 0x3000000)
 /* Offset to DDR_BASE: 0x8000000, Max to 1MB */
 #define FDT_START_BASE      (DDR_BASE + 0x8000000)
 /* Offset to DDR_BASE: 0x8100000, Max to 4KB */

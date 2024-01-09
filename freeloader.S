@@ -212,6 +212,13 @@ _disable_dlm:
     csrc CSR_MDLM_CTL, t0
 
 _check_hart:
+    /*init Demo DDR SOC DRAM Bus*/
+    li t0, 0x7fffff
+    li t1, 0xf8b300020
+    sw t0, 0(t1)
+    li t1, 0xf8b300040
+    sw t0, 0(t1)
+
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */
     csrr a0, mhartid
     beq a0, zero, _copy_image

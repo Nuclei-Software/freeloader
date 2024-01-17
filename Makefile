@@ -44,6 +44,7 @@ ENABLE_L2 ?= 0
 AMPFW_START_OFFSET ?= 0xE000000
 AMPFW_SIZE ?= 0x400000
 AMP_START_CORE ?= 8
+DDR_INIT ?= 0
 
 # Misc macros
 check_item_exist = $(strip $(if $(filter 1, $(words $(1))),$(filter $(1), $(sort $(2))),))
@@ -82,6 +83,10 @@ endif
 
 ifneq ($(MERGL1DCTRL),)
 CFLAGS += -DMERGL1DCTRL=$(MERGL1DCTRL)
+endif
+
+ifneq ($(DDR_INIT),)
+CFLAGS += -DDDR_INIT=$(DDR_INIT)
 endif
 
 # memory.lds need to be the first requirement

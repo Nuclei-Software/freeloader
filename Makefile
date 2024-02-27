@@ -3,17 +3,15 @@ ARCH ?= rv64imac
 ABI ?= lp64
 ARCH_EXT ?=
 
-SOC ?= demosoc
+SOC ?= evalsoc
 BUILD_ROOT ?= ../work/$(SOC)
 # BOOT_MODE supported : sd, flash
 BOOT_MODE ?= sd
 O ?= build/$(SOC)
 
-OPENSBI_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/$(SOC)/firmware/fw_jump.bin
-UBOOT_BIN ?= $(BUILD_ROOT)/u-boot/u-boot.bin
+UBOOT_SPL_BIN ?= $(BUILD_ROOT)/u-boot/spl/u-boot-spl-nodtb.bin
+UBOOT_SPLITB_BIN ?= $(BUILD_ROOT)/boot/spl.itb
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
-KERNEL_BIN ?= $(BUILD_ROOT)/boot/uImage.lz4
-INITRD_BIN ?= $(BUILD_ROOT)/boot/uInitrd.lz4
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=
 CORE3_APP_BIN ?=
@@ -24,7 +22,7 @@ CORE7_APP_BIN ?=
 
 # config makefile passed by make which defines
 # DDR_BASE, FLASH_BASE, FLASH_SIZE, CACHE_CTRL
-CONFIG_MK ?= ../conf/$(SOC)/freeloader.mk
+CONFIG_MK ?= #../conf/$(SOC)/freeloader.mk
 
 -include $(CONFIG_MK)
 
@@ -86,14 +84,14 @@ endif
 
 # memory.lds need to be the first requirement
 FREELOADER_BUILD_REQS := memory.lds
-FREELOADER_BUILD_REQS += u-boot.bin opensbi.bin fdt.dtb
+FREELOADER_BUILD_REQS += spl.bin spl.itb fdt.dtb
 
 all: $(build_dir)/freeloader.bin $(build_dir)/freeloader.dasm
 
-$(build_dir)/u-boot.bin: $(UBOOT_BIN)
+$(build_dir)/spl.bin: $(UBOOT_SPL_BIN)
 	cp $< $@
 
-$(build_dir)/opensbi.bin: $(OPENSBI_BIN)
+$(build_dir)/spl.itb: $(UBOOT_SPLITB_BIN)
 	cp $< $@
 
 $(build_dir)/fdt.dtb: $(DTB)

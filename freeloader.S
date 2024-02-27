@@ -9,17 +9,7 @@
 #endif
 
 /* Max to 1MB */
-#define OPENSBI_START_BASE  (DDR_BASE + 0x0)
-/* Max to 14MB */
-#if __riscv_xlen == 32
-#define UBOOT_START_BASE    (DDR_BASE + 0x400000)
-#else
-#define UBOOT_START_BASE    (DDR_BASE + 0x200000)
-#endif
-/* Offset to DDR_BASE: 0x3000000 - 0x8000000 */
-#define KERNEL_START_BASE   (DDR_BASE + 0x3000000)
-/* Offset to DDR_BASE: 0x8000000, Max to 1MB */
-#define FDT_START_BASE      (DDR_BASE + 0x8000000)
+#define SPL_START_BASE      (DDR_BASE + 0x0)
 /* Offset to DDR_BASE: 0x8100000, Max to 4KB */
 #define COPY_START_BASE     (DDR_BASE + 0x8100000)
 /* Offset to DDR_BASE: 0x0101000, between opensbi and uboot area */
@@ -27,9 +17,6 @@
 #define SMP_FLAG_BASE       (DDR_BASE + 0x0101004)
 /* reserved 4 * 4 = 16 bytes, for core0 - core3 */
 #define REBOOT_CNT_BASE     (DDR_BASE + 0x0101008)
-
-/* Offset to DDR_BASE: 0x08300000 - 0xE0000000 */
-#define INITRD_START_BASE   (DDR_BASE + 0x8300000)
 
 /* Offset to DDR_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
 #ifndef AMPFW_START_OFFSET
@@ -290,35 +277,17 @@ _copy_image:
     fence.i
     sfence.vma
 
-    /* move data from NOR to DDR */
-    li t0, OPENSBI_START_BASE
-    lla t1, sbi
-    lla t2, _end_sbi
+    /* move data from NOR to RAM */
+    /* copy spl from nor to ram */
+    li t0, SPL_START_BASE
+    lla t1, spl
+    lla t2, _end_spl
 
     /* call faraway function */
     li t3, COPY_START_BASE
     //call _copy_data
     jalr ra, 0(t3)
 
-    /* U-Boot section */
-    li t0, UBOOT_START_BASE
-    lla t1, uboot
-    lla t2, _end_uboot
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, 0(t3)
-
-    /* FDT section */
-    li t0, FDT_START_BASE
-    lla t1, fdt
-    lla t2, _end_fdt
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
 
 #if defined(WITH_AMPFW_CORE1)
     /* AMP Image Firmware section */
@@ -404,28 +373,6 @@ _copy_image:
     jalr ra, t3, 0
 #endif
 
-#ifdef BOOT_MODE_FLASH
-    /* Kernel section */
-    li t0, KERNEL_START_BASE
-    lla t1, kernel
-    lla t2, _end_kernel
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
-
-    /* Initrd section */
-    li t0, INITRD_START_BASE
-    lla t1, initrd
-    lla t2, _end_initrd
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
-#endif
-
     /* Flush cache */
     fence
     sfence.vma
@@ -457,7 +404,7 @@ _start_boot:
      * device tree blob address in memory via a1 register. The address must be aligned to 8 bytes.
      */
     csrr a0, mhartid /* hart ID */
-    li a1, FDT_START_BASE /* fdt offset */
+    lla a1, spldtb /* fdt offset */
     li a2, 0 /* Reserved */
 
     /* clear boot_flag to 0 */
@@ -466,8 +413,8 @@ _start_boot:
     sw t1, 0(t0)
     fence
 
-    /* Goto OpenSBI */
-    li t0, OPENSBI_START_BASE
+    /* Goto UBoot SPL */
+    li t0, SPL_START_BASE
     jr t0
 
 
@@ -503,7 +450,7 @@ _try_smp_fail:
     csrw mepc, a0
     mret
 
-.align 12
+.align 6
 // dead loop, nop here
 _dead_loop_amp:
 _deadloop:
@@ -515,23 +462,23 @@ _deadloop:
     wfi
     j _deadloop
 
-.section .sbipayload
-.global sbi
-.type sbi, @object
-sbi:
-.incbin "opensbi.bin"
+.section .splpayload
+.global spl
+.type spl, @object
+spl:
+.incbin "spl.bin"
 
-.section .ubootpayload
-.global uboot
-.type uboot, @object
-uboot:
-.incbin "u-boot.bin"
-
-.section .fdtpayload
-.global fdt
-.type fdt, @object
-fdt:
+.section .spldtbpayload
+.global spldtb
+.type spldtb, @object
+spldtb:
 .incbin "fdt.dtb"
+
+.section .splitbpayload
+.global splitb
+.type splitb, @object
+splitb:
+.incbin "spl.itb"
 
 #if defined(WITH_AMPFW_CORE1)
 .section .ampfwpayloadc1
@@ -587,18 +534,4 @@ ampfwc6:
 .type ampfwc7, @object
 ampfwc7:
 .incbin "ampfw_core7.bin"
-#endif
-
-#ifdef BOOT_MODE_FLASH
-.section .kernelpayload
-.global kernel
-.type kernel, @object
-kernel:
-.incbin "kernel.bin"
-
-.section .initrdpayload
-.global initrd
-.type initrd, @object
-initrd:
-.incbin "initrd.bin"
 #endif

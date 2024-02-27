@@ -17,25 +17,31 @@ SECTIONS
   .text :
   {
     KEEP (*(.text))
+  } > flash
 
-    . = ALIGN(8);
-    KEEP (*(.bootrom))
-    . = ALIGN(8);
-    PROVIDE (_end_bootrom = .);
+  /* above 8K is for zsbl code */
+  . = ORIGIN(flash) + 0x2000;
 
+  .payload . :
+  {
+    KEEP (*(.splpayload))
+    KEEP (*(.spldtbpayload))
     . = ALIGN(8);
-    KEEP (*(.sbipayload))
-    . = ALIGN(8);
-    PROVIDE (_end_sbi = .);
+    PROVIDE (_end_spl = .);
 
-    KEEP (*(.ubootpayload))
+    /* first 128K in payload is for uboot spl */
+    . = 0x20000;
+    KEEP (*(.splitbpayload))
     . = ALIGN(8);
-    PROVIDE (_end_uboot = .);
+    PROVIDE (_end_spl = .);
 
-    KEEP (*(.fdtpayload))
-    . = ALIGN(8);
-    PROVIDE (_end_fdt = .);
+  } > flash
 
+  /* above 1M is for zsbl + spl + spl itb code */
+  . = ORIGIN(flash) + 0x100000;
+
+  .ampfwpayload . :
+  {
     KEEP (*(.ampfwpayloadc1))
     . = ALIGN(8);
     PROVIDE (_end_ampfwc1 = .);
@@ -63,15 +69,6 @@ SECTIONS
     KEEP (*(.ampfwpayloadc7))
     . = ALIGN(8);
     PROVIDE (_end_ampfwc7 = .);
-
-    KEEP (*(.kernelpayload))
-    . = ALIGN(8);
-    PROVIDE (_end_kernel = .);
-
-    KEEP (*(.initrdpayload))
-    . = ALIGN(8);
-    PROVIDE (_end_initrd = .);
-  } >flash
-
+  } > flash
 }
 

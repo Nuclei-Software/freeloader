@@ -4,21 +4,23 @@
  * Copyright (C) 2020-present Nuclei System Technology
  */
 
-#ifndef DDR_BASE
-#define DDR_BASE            0xA0000000
+#ifndef CLM_BASE
+#define CLM_BASE            0xA0000000
 #endif
 
-/* Max to 1MB */
-#define SPL_START_BASE      (DDR_BASE + 0x0)
-/* Offset to DDR_BASE: 0x8100000, Max to 4KB */
-#define COPY_START_BASE     (DDR_BASE + 0x8100000)
-/* Offset to DDR_BASE: 0x0101000, between opensbi and uboot area */
-#define BOOT_FLAG_BASE      (DDR_BASE + 0x0101000)
-#define SMP_FLAG_BASE       (DDR_BASE + 0x0101004)
+/* Offset to CLM_BASE: 0x0 max 1K */
+/* copy code maxium to 32 bytes, 0x20 */
+#define COPY_START_BASE     (CLM_BASE + 0x0)
+/* Offset to CLM_BASE: 0x20 */
+#define BOOT_FLAG_BASE      (CLM_BASE + 0x20)
+#define SMP_FLAG_BASE       (CLM_BASE + 0x24)
 /* reserved 4 * 4 = 16 bytes, for core0 - core3 */
-#define REBOOT_CNT_BASE     (DDR_BASE + 0x0101008)
+#define REBOOT_CNT_BASE     (CLM_BASE + 0x28)
 
-/* Offset to DDR_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
+/* Max to 1MB */
+#define SPL_START_BASE      (CLM_BASE + 0x400)
+
+/* Offset to CLM_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
 #ifndef AMPFW_START_OFFSET
 #define AMPFW_START_OFFSET  0xE000000
 #endif
@@ -30,7 +32,7 @@
 #endif
 
 
-#define FIRMWARE_START_BASE (DDR_BASE + AMPFW_START_OFFSET)
+#define FIRMWARE_START_BASE (CLM_BASE + AMPFW_START_OFFSET)
 /* reserved 8 cores firmware space, core1 - core7, each core 4M space */
 #define AMPFW_START_BASE    (FIRMWARE_START_BASE + 0x0)
 
@@ -91,7 +93,7 @@ _start:
 #endif
 
 _get_smpbase:
-#if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
+#if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_CLM) && ENABLE_CLM == 1)
     /* If smp probe failed, goto _try_smp_fail,
      * directly skip steps to enable smp and l2 */
     lla t0, _try_smp_fail
@@ -154,14 +156,24 @@ _enable_smp:
     fence
 #endif
 
-_enable_l2:
-#if defined(ENABLE_L2) && ENABLE_L2 == 1
-    // set cluster cache way enable to 0
-    // to make all cluster memory as l2 cache
-    li t1, 0
+_enable_clm:
+#if defined(ENABLE_CLM) && ENABLE_CLM == 1
+    // Assume L2 is disabled now
+    // Set Cluster Local Memory base address
+    // You can only read or write CLM_BASE_ADDR higher 4 bytes if your PASIZE >= 32, otherwise exception will happen
+    // here I just assume if your CLM_BASE is above 0xFFFFFFFF, your PASIZE you know is above 32
+    li t1, (CLM_BASE >> 32)
+    beq t1, zero, _set_clm_base_low_4
+    sw t1, 0xd4(t0)
+_set_clm_base_low_4:
+    li t1, (CLM_BASE & 0xFFFFFFFFF)
+    sw t1, 0xd0(t0)
+    // set cluster cache way enable to 0xFFFFFFFF to make full L2 Cache
+    // as Cluster Local Memory(CLM)
+    li t1, 0xFFFFFFFF
     sw t1, 0xd8(t0)
-    // set l2 ctrl = 0x1
-    li t1, 1
+    // set l2 ctrl = 0x0
+    li t1, 0
     sw t1, 0x10(t0)
     fence
 #endif
@@ -266,13 +278,13 @@ _copy_image:
     sw zero, 16(t0)
     fence
 
-    /* move _copy_data() to DDR region */
+    /* move _copy_data() to CLM region */
     li t0, COPY_START_BASE
     lla t1, _copy_data
     addi t2, t1, 32
     call _copy_data
 
-    /* Flush cache after copy_data function copied to DDR */
+    /* Flush cache after copy_data function copied to CLM */
     fence
     fence.i
     sfence.vma
@@ -399,7 +411,7 @@ _start_boot:
     li a0, 0x8
     csrs CSR_MMISC_CTL, a0
     /**
-     * prepare opensbi entry arguments
+     * prepare uboot spl entry arguments
      * hartid via a0 register
      * device tree blob address in memory via a1 register. The address must be aligned to 8 bytes.
      */

@@ -1,4 +1,4 @@
-CROSS_COMPILE ?= riscv-nuclei-linux-gnu-
+CROSS_COMPILE ?= riscv64-unknown-linux-gnu-
 ARCH ?= rv64imac
 ABI ?= lp64
 ARCH_EXT ?=
@@ -21,12 +21,15 @@ CORE6_APP_BIN ?=
 CORE7_APP_BIN ?=
 
 # config makefile passed by make which defines
-# DDR_BASE, FLASH_BASE, FLASH_SIZE, CACHE_CTRL
-CONFIG_MK ?= #../conf/$(SOC)/freeloader.mk
+# CLM_BASE, FLASH_BASE, FLASH_SIZE, CACHE_CTRL
+CONFIG_MK ?= ../conf/$(SOC)/freeloader.mk
 
 -include $(CONFIG_MK)
 
-DDR_BASE ?= 0xA0000000
+# CLM_BASE is the cluster local memory base address or soc sram memory which no need to initialize
+# it should not be ddr memory base which need to be initialized
+# For smp core, it must be accessable for all the cpu core
+CLM_BASE ?= 0x40000000
 FLASH_BASE ?= 0x20000000
 FLASH_SIZE ?= 16M
 CACHE_CTRL ?= 0x100C1
@@ -37,8 +40,8 @@ MMISC_CTL ?=
 SPFL1DCTRL1 ?=
 SPFL1DCTRL2 ?=
 MERGL1DCTRL ?=
-ENABLE_SMP ?= 0
-ENABLE_L2 ?= 0
+ENABLE_SMP ?= 1
+ENABLE_CLM ?= 1
 AMPFW_START_OFFSET ?= 0xE000000
 AMPFW_SIZE ?= 0x400000
 AMP_START_CORE ?= 8
@@ -52,9 +55,9 @@ FREELOADER := $(build_dir)/freeloader.elf
 CONFIG_MK_REQ := $(wildcard $(CONFIG_MK))
 
 CFLAGS := -g -march=$(ARCH)$(ARCH_EXT) -mabi=$(ABI) -fno-pie -static
-CFLAGS += -DDDR_BASE=$(DDR_BASE) -DFLASH_BASE=$(FLASH_BASE) \
+CFLAGS += -DCLM_BASE=$(CLM_BASE) -DFLASH_BASE=$(FLASH_BASE) \
 		-DFLASH_SIZE=$(FLASH_SIZE) -DCACHE_CTRL=$(CACHE_CTRL) -DTLB_CTRL=$(TLB_CTRL) \
-		-DENABLE_SMP=$(ENABLE_SMP) -DENABLE_L2=$(ENABLE_L2)  \
+		-DENABLE_SMP=$(ENABLE_SMP) -DENABLE_CLM=$(ENABLE_CLM)  \
 		-DAMPFW_START_OFFSET=$(AMPFW_START_OFFSET) -DAMPFW_SIZE=$(AMPFW_SIZE) \
 		-DAMP_START_CORE=$(AMP_START_CORE)
 
@@ -152,7 +155,7 @@ $(build_dir)/initrd.bin: $(INITRD_BIN)
 	cp $< $@
 endif
 
-FREELOADER_REQS := $(addprefix $(build_dir)/, $(FREELOADER_BUILD_REQS)) freeloader.S linker.lds
+FREELOADER_REQS := $(addprefix $(build_dir)/, $(FREELOADER_BUILD_REQS)) Makefile freeloader.S linker.lds
 
 $(FREELOADER): $(FREELOADER_REQS)
 	$(CROSS_COMPILE)gcc $(CFLAGS) -I$(build_dir) freeloader.S -o $@ -nostartfiles \
@@ -178,6 +181,7 @@ clean:
 	rm -f $(build_dir)/*.dasm
 	rm -f $(build_dir)/*.dis
 	rm -f $(build_dir)/*.dtb
+	rm -f $(build_dir)/*.itb
 	rm -f $(build_dir)/*.map
 	rm -f $(build_dir)/memory.lds
 # always remove memory.lds located in source code folder

@@ -10,7 +10,7 @@ BOOT_MODE ?= sd
 O ?= build/$(SOC)
 
 UBOOT_SPL_BIN ?= $(BUILD_ROOT)/u-boot/spl/u-boot-spl-nodtb.bin
-UBOOT_SPLITB_BIN ?= $(BUILD_ROOT)/boot/spl.itb
+UBOOT_SPL_ITB ?= $(BUILD_ROOT)/boot/spl.itb
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=
@@ -94,7 +94,7 @@ all: $(build_dir)/freeloader.bin $(build_dir)/freeloader.dasm
 $(build_dir)/spl.bin: $(UBOOT_SPL_BIN)
 	cp $< $@
 
-$(build_dir)/spl.itb: $(UBOOT_SPLITB_BIN)
+$(build_dir)/spl.itb: $(UBOOT_SPL_ITB)
 	cp $< $@
 
 $(build_dir)/fdt.dtb: $(DTB)

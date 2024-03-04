@@ -10,7 +10,7 @@ BOOT_MODE ?= sd
 O ?= build/$(SOC)
 
 UBOOT_SPL_BIN ?= $(BUILD_ROOT)/u-boot/spl/u-boot-spl-nodtb.bin
-UBOOT_SPL_ITB ?= $(BUILD_ROOT)/boot/spl.itb
+UBOOT_SPL_ITB ?= $(BUILD_ROOT)/u-boot_spl/uboot_spl.itb
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=

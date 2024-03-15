@@ -40,6 +40,13 @@ SECTIONS
   /* above 1M is for zsbl + spl + spl itb code */
   . = ORIGIN(flash) + 0x100000;
 
+  .kernel . :
+  {
+    KEEP (*(.kernelitbpayload))
+    . = ALIGN(8);
+
+  } > flash
+
   .ampfwpayload . :
   {
     KEEP (*(.ampfwpayloadc1))

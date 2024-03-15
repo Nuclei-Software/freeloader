@@ -492,6 +492,14 @@ spldtb:
 splitb:
 .incbin "spl.itb"
 
+#ifdef BOOT_MODE_FLASH
+.section .kernelitbpayload
+.global kernelitb
+.type kernelitb, @object
+kernelitb:
+.incbin "kernel.bin"
+#endif
+
 #if defined(WITH_AMPFW_CORE1)
 .section .ampfwpayloadc1
 .global ampfwc1

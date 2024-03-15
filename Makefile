@@ -145,7 +145,7 @@ $(build_dir)/ampfw_core7.bin: $(CORE7_APP_BIN)
 endif
 
 ifeq ($(BOOT_MODE),flash)
-FREELOADER_BUILD_REQS += kernel.bin initrd.bin
+FREELOADER_BUILD_REQS += kernel.bin
 CFLAGS += -DBOOT_MODE_FLASH
 
 $(build_dir)/kernel.bin: $(KERNEL_BIN)

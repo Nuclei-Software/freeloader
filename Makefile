@@ -12,8 +12,7 @@ O ?= build/$(SOC)
 OPENSBI_BIN ?= $(BUILD_ROOT)/opensbi/platform/nuclei/$(SOC)/firmware/fw_jump.bin
 UBOOT_BIN ?= $(BUILD_ROOT)/u-boot/u-boot.bin
 DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
-KERNEL_BIN ?= $(BUILD_ROOT)/boot/uImage.lz4
-INITRD_BIN ?= $(BUILD_ROOT)/boot/uInitrd.lz4
+KERNEL_BIN ?= $(BUILD_ROOT)/boot/kernel_rootfs.itb
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=
 CORE3_APP_BIN ?=
@@ -144,13 +143,10 @@ $(build_dir)/ampfw_core7.bin: $(CORE7_APP_BIN)
 endif
 
 ifeq ($(BOOT_MODE),flash)
-FREELOADER_BUILD_REQS += kernel.bin initrd.bin
+FREELOADER_BUILD_REQS += kernel.bin
 CFLAGS += -DBOOT_MODE_FLASH
 
 $(build_dir)/kernel.bin: $(KERNEL_BIN)
-	cp $< $@
-
-$(build_dir)/initrd.bin: $(INITRD_BIN)
 	cp $< $@
 endif
 

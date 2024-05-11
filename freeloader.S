@@ -28,9 +28,6 @@
 /* reserved 4 * 4 = 16 bytes, for core0 - core3 */
 #define REBOOT_CNT_BASE     (DDR_BASE + 0x0101008)
 
-/* Offset to DDR_BASE: 0x08300000 - 0xE0000000 */
-#define INITRD_START_BASE   (DDR_BASE + 0x8300000)
-
 /* Offset to DDR_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
 #ifndef AMPFW_START_OFFSET
 #define AMPFW_START_OFFSET  0xE000000
@@ -415,15 +412,6 @@ _copy_image:
     //call _copy_data
     jalr ra, t3, 0
 
-    /* Initrd section */
-    li t0, INITRD_START_BASE
-    lla t1, initrd
-    lla t2, _end_initrd
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
 #endif
 
     /* Flush cache */
@@ -596,9 +584,4 @@ ampfwc7:
 kernel:
 .incbin "kernel.bin"
 
-.section .initrdpayload
-.global initrd
-.type initrd, @object
-initrd:
-.incbin "initrd.bin"
 #endif

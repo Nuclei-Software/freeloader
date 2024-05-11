@@ -67,10 +67,6 @@ SECTIONS
     KEEP (*(.kernelpayload))
     . = ALIGN(8);
     PROVIDE (_end_kernel = .);
-
-    KEEP (*(.initrdpayload))
-    . = ALIGN(8);
-    PROVIDE (_end_initrd = .);
   } >flash
 
 }

@@ -120,10 +120,16 @@ _get_iregion:
     li t1, 0x100
     add t2, t0, t1
     /* Init prefetch related registers, t2 = IINFO + 0x100 */
+
 #ifdef SPFL1DCTRL1
     // set prefetch ctrl register spfl1dctrl1
     li t1, SPFL1DCTRL1
     sw t1, 0x0(t2)
+#endif
+#if defined(SPFL1DCTRL1) && SPFL1DCTRL1 > 0
+    // set overall switch spfl1dctrl4 enabled
+    li t1, 1
+    sw t1, 0x24(t2)
 #endif
 #ifdef SPFL1DCTRL2
     // set prefetch ctrl register spfl1dctrl2

@@ -466,6 +466,11 @@ _start_boot:
     /* Enable BPU, since 2022.08, BPU is disabled on boot, need to set 1 when bringup */
     li a0, 0x8
     csrs CSR_MMISC_CTL, a0
+#if defined(ENABLE_LDSPEC) && ENABLE_LDSPEC == 1
+    /* Enable LDSPEC */
+    li a0, 0x1000
+    csrs CSR_MMISC_CTL, a0
+#endif
     /**
      * prepare opensbi entry arguments
      * hartid via a0 register

@@ -69,6 +69,8 @@
 #define CSR_MMISC_CTL       0x7D0
 #define CSR_MILM_CTL        0x7C0
 #define CSR_MDLM_CTL        0x7C1
+#define CSR_MMISC_CTL1      0x7E2
+
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -472,6 +474,9 @@ _start_boot:
     li a0, 0x1000
     csrs CSR_MMISC_CTL, a0
 #endif
+    // should check region 4KB for vlsu_ooo in linux
+    li a0, 0x2
+    csrs CSR_MMISC_CTL1, a0
     /**
      * prepare opensbi entry arguments
      * hartid via a0 register

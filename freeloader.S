@@ -179,8 +179,9 @@ _enable_l2:
     // to make all cluster memory as l2 cache
     li t1, 0
     sw t1, 0xd8(t0)
-    // set l2 ctrl = 0x1
-    li t1, 1
+    // set CC_EN = 0x1
+    lw t1, 0x10(t0)
+    ori t1, t1, 0x1
     sw t1, 0x10(t0)
     fence
 #endif

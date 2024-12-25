@@ -178,8 +178,9 @@ _set_clm_base_low_4:
     // as Cluster Local Memory(CLM)
     li t1, 0xFFFFFFFF
     sw t1, 0xd8(t0)
-    // set l2 ctrl = 0x0
-    li t1, 0
+    // set CC_EN = 0x1
+    lw t1, 0x10(t0)
+    ori t1, t1, 0x1
     sw t1, 0x10(t0)
     fence
 #endif

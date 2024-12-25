@@ -179,7 +179,9 @@ _set_clm_base_low_4:
     li t1, 0xFFFFFFFF
     sw t1, 0xd8(t0)
     // set l2 ctrl = 0x0
-    li t1, 0
+	li t3, 0xFFFFFFFE
+    lw t1, 0x10(t0)
+    and t1, t1, t3
     sw t1, 0x10(t0)
     fence
 #endif

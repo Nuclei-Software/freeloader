@@ -96,6 +96,7 @@ $(build_dir)/spl.bin: $(UBOOT_SPL_BIN)
 
 $(build_dir)/spl.itb: $(UBOOT_SPL_ITB)
 	cp $< $@
+	cp $< $(build_dir)/opensbi_uboot.bin
 
 $(build_dir)/fdt.dtb: $(DTB)
 	cp $< $@
@@ -169,6 +170,7 @@ $(build_dir)/memory.lds: $(CONFIG_MK_REQ)
 
 $(build_dir)/freeloader.bin: $(FREELOADER)
 	$(CROSS_COMPILE)objcopy $< -O binary $@
+	cat $(build_dir)/spl.bin $(build_dir)/fdt.dtb > $(build_dir)/spl_dtb.bin
 
 $(build_dir)/freeloader.dasm: $(FREELOADER)
 	$(CROSS_COMPILE)objdump -d $< > $@

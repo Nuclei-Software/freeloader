@@ -137,8 +137,11 @@ _get_iregion:
     /* Init prefetch related registers, t2 = IINFO + 0x100 */
 
 #ifdef SPFL1DCTRL1
-    // set prefetch ctrl register spfl1dctrl1
-    li t1, SPFL1DCTRL1
+    // set prefetch ctrl register spfl1dctrl1 bit[7:0], leave other bits rtl default
+    lw t1, 0x0(t2)
+    # t1 & (0xffffff00)
+    andi t1, t1, -256
+    ori t1, t1, SPFL1DCTRL1
     sw t1, 0x0(t2)
 #endif
 #if defined(SPFL1DCTRL1) && SPFL1DCTRL1 > 0

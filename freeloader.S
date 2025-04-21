@@ -484,7 +484,7 @@ spl:
 .global spldtb
 .type spldtb, @object
 spldtb:
-.incbin "fdt.dtb"
+.incbin "spl.dtb"
 
 .section .splitbpayload
 .global splitb

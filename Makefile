@@ -11,7 +11,6 @@ O ?= build/$(SOC)
 
 UBOOT_SPL_BIN ?= $(BUILD_ROOT)/u-boot/spl/u-boot-spl-nodtb.bin
 UBOOT_SPL_ITB ?= $(BUILD_ROOT)/u-boot_spl/uboot_spl.itb
-DTB ?= $(BUILD_ROOT)/boot/kernel.dtb
 CORE1_APP_BIN ?=
 CORE2_APP_BIN ?=
 CORE3_APP_BIN ?=
@@ -87,7 +86,7 @@ endif
 
 # memory.lds need to be the first requirement
 FREELOADER_BUILD_REQS := memory.lds
-FREELOADER_BUILD_REQS += spl.bin spl.itb fdt.dtb
+FREELOADER_BUILD_REQS += spl.bin spl.itb spl.dtb
 
 all: $(build_dir)/freeloader.bin $(build_dir)/freeloader.dasm
 
@@ -98,7 +97,7 @@ $(build_dir)/spl.itb: $(UBOOT_SPL_ITB)
 	cp $< $@
 	cp $< $(build_dir)/opensbi_uboot.bin
 
-$(build_dir)/fdt.dtb: $(DTB)
+$(build_dir)/spl.dtb: $(DTB)
 	cp $< $@
 
 # AMP Core Image binaries
@@ -170,7 +169,7 @@ $(build_dir)/memory.lds: $(CONFIG_MK_REQ)
 
 $(build_dir)/freeloader.bin: $(FREELOADER)
 	$(CROSS_COMPILE)objcopy $< -O binary $@
-	cat $(build_dir)/spl.bin $(build_dir)/fdt.dtb > $(build_dir)/spl_dtb.bin
+	cat $(build_dir)/spl.bin $(build_dir)/spl.dtb > $(build_dir)/spl_dtb.bin
 
 $(build_dir)/freeloader.dasm: $(FREELOADER)
 	$(CROSS_COMPILE)objdump -d $< > $@

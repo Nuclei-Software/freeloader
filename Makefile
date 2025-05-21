@@ -91,6 +91,10 @@ ifneq ($(DDR_INIT),)
 CFLAGS += -DDDR_INIT=$(DDR_INIT)
 endif
 
+ifneq ($(ENABLE_TEE_WG),)
+CFLAGS += -DENABLE_TEE_WG
+endif
+
 # memory.lds need to be the first requirement
 FREELOADER_BUILD_REQS := memory.lds
 FREELOADER_BUILD_REQS += u-boot.bin opensbi.bin fdt.dtb opteeos.bin

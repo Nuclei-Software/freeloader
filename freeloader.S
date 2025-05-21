@@ -89,6 +89,13 @@
 #define LWU                 lw
 #endif
 
+#define CSR_MATTRI3_BASE    0x7FB
+#define CSR_MATTRI3_MASK    0x7FC
+
+#define SECSHARE_REGION_VALID              (1 << 0)
+#define SECSHARE_ACCESS                    (1 << 3)
+#define SECSHARE_REGION_ATTR               (SECSHARE_REGION_VALID | SECSHARE_ACCESS)
+
 .global _start
 .section .text
 _start:
@@ -313,20 +320,33 @@ _copy_image:
     //call _copy_data
     jalr ra, 0(t3)
 
-    /* U-Boot section */
-    li t0, UBOOT_START_BASE
-    lla t1, uboot
-    lla t2, _end_uboot
+    /* optee-os section */
+    li t0, OPTEEOS_START_BASE
+    lla t1, opteeos
+    lla t2, _end_opteeos
 
     /* call faraway function */
     li t3, COPY_START_BASE
     //call _copy_data
     jalr ra, 0(t3)
 
-    /* optee-os section */
-    li t0, OPTEEOS_START_BASE
-    lla t1, opteeos
-    lla t2, _end_opteeos
+#ifdef ENABLE_TEE_WG
+    /*
+     * set uboot,kernel,fdt to non-secure memory.
+     * mattr memory area: 0x80000000- 0x90000000
+     * mask:0xF0000000, base:0xa0000000
+     */
+    fence
+    li a0, 0xF0000000
+    csrw CSR_MATTRI3_MASK, a0
+    li a0, OPENSBI_START_BASE
+    addi a0, a0, SECSHARE_REGION_ATTR
+    csrw CSR_MATTRI3_BASE, a0
+#endif
+    /* U-Boot section */
+    li t0, UBOOT_START_BASE
+    lla t1, uboot
+    lla t2, _end_uboot
 
     /* call faraway function */
     li t3, COPY_START_BASE
@@ -453,6 +473,9 @@ _copy_image:
     fence
     sfence.vma
     fence.i
+#ifdef ENABLE_TEE_WG
+    csrw CSR_MATTRI3_BASE, x0
+#endif
 
 _start_boot:
     /* Set mcache_ctl csr */
@@ -494,6 +517,18 @@ _start_boot:
     sw t1, 0(t0)
     fence
 
+#ifdef ENABLE_TEE_WG
+    /*
+     * set fdt memory as share memory
+     * FDT_START_BASE ~ FDT_START_BASE + 256K
+     * base:0x88000000 ~ 0x88040000
+     */
+    li a0, 0xFFF00000
+    csrw CSR_MATTRI3_MASK, a0
+    li a0, FDT_START_BASE
+    addi a0, a0, SECSHARE_REGION_ATTR
+    csrw CSR_MATTRI3_BASE, a0
+#endif
     /* Goto OpenSBI */
     li t0, OPENSBI_START_BASE
     jr t0

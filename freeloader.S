@@ -75,13 +75,6 @@
 #define CSR_CACHE_ENABLE    CACHE_CTRL
 #endif
 
-#ifndef TLB_CTRL
-/* ITLB/DTLB Cancel Enable */
-#define CSR_TLB_ENABLE      0x30
-#else
-#define CSR_TLB_ENABLE      TLB_CTRL
-#endif
-
 #if __riscv_xlen == 64
 #define LWU                 lwu
 #else
@@ -194,10 +187,6 @@ _enable_l1:
     /* Enable I/D Cache */
     li t0, CSR_CACHE_ENABLE
     csrs CSR_MCACHE_CTL, t0
-
-    /* Enable ITLB/DTLB Cancel */
-    li t0, CSR_TLB_ENABLE
-    csrs CSR_MTLB_CTL, t0
 
 _disable_ilm:
     /* check whether ilm present */

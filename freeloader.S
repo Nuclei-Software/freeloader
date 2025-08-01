@@ -479,8 +479,8 @@ _start_boot:
     csrs CSR_MMISC_CTL, a0
 #endif
     // should check region 4KB for vlsu_ooo in linux
-    li a0, 0x2
-    csrs CSR_MMISC_CTL1, a0
+    // li a0, 0x2
+    // csrs CSR_MMISC_CTL1, a0
     /**
      * prepare opensbi entry arguments
      * hartid via a0 register

@@ -4,34 +4,25 @@
  * Copyright (C) 2020-present Nuclei System Technology
  */
 
-#ifndef DDR_BASE
-#define DDR_BASE            0xA0000000
+#ifndef CLM_BASE
+#define CLM_BASE            0xA0000000
 #endif
+
+/* Offset to CLM_BASE: 0x0 max 1K */
+/* copy code maxium to 32 bytes, 0x20 */
+#define COPY_START_BASE     (CLM_BASE + 0x0)
+/* Offset to CLM_BASE: 0x20 */
+#define BOOT_FLAG_BASE      (CLM_BASE + 0x20)
+#define SMP_FLAG_BASE       (CLM_BASE + 0x24)
+/* reserved 4 * 4 = 16 bytes, for core0 - core3 */
+#define REBOOT_CNT_BASE     (CLM_BASE + 0x28)
 
 /* Max to 1MB */
-#define OPENSBI_START_BASE  (DDR_BASE + 0x0)
-/* Max to 14MB */
-#if __riscv_xlen == 32
-#define UBOOT_START_BASE    (DDR_BASE + 0x400000)
-#else
-#define UBOOT_START_BASE    (DDR_BASE + 0x200000)
-#endif
-/* Offset to DDR_BASE: 0x3000000 - 0x8000000 */
+#define SPL_START_BASE      (CLM_BASE + 0x400)
+
 #define KERNEL_START_BASE   (DDR_BASE + 0x3000000)
-/* Offset to DDR_BASE: 0x8000000, Max to 1MB */
-#define FDT_START_BASE      (DDR_BASE + 0x8000000)
-/* Offset to DDR_BASE: 0x8100000, Max to 4KB */
-#define COPY_START_BASE     (DDR_BASE + 0x8100000)
-/* Offset to DDR_BASE: 0x0101000, between opensbi and uboot area */
-#define BOOT_FLAG_BASE      (DDR_BASE + 0x0101000)
-#define SMP_FLAG_BASE       (DDR_BASE + 0x0101004)
-/* reserved 4 * 4 = 16 bytes, for core0 - core3 */
-#define REBOOT_CNT_BASE     (DDR_BASE + 0x0101008)
 
-/* Offset to DDR_BASE: 0x08300000 - 0xE0000000 */
-#define INITRD_START_BASE   (DDR_BASE + 0x8300000)
-
-/* Offset to DDR_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
+/* Offset to CLM_BASE: the top area started @FIRMWARE_START_OFFSET is reserved for amp firmware */
 #ifndef AMPFW_START_OFFSET
 #define AMPFW_START_OFFSET  0xE000000
 #endif
@@ -43,7 +34,7 @@
 #endif
 
 
-#define FIRMWARE_START_BASE (DDR_BASE + AMPFW_START_OFFSET)
+#define FIRMWARE_START_BASE (CLM_BASE + AMPFW_START_OFFSET)
 /* reserved 8 cores firmware space, core1 - core7, each core 4M space */
 #define AMPFW_START_BASE    (FIRMWARE_START_BASE + 0x0)
 
@@ -71,6 +62,10 @@
 #define CSR_MDLM_CTL        0x7C1
 #define CSR_MMISC_CTL1      0x7E2
 
+#define MATTRI0_BASE    0x7F3
+#define MATTRI0_MASK    0x7F4
+
+#define CLM_SIZE        0x100000
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -99,7 +94,7 @@ _start:
 #endif
 
 _get_smpbase:
-#if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_L2) && ENABLE_L2 == 1)
+#if (defined(ENABLE_SMP) && ENABLE_SMP == 1) || (defined(ENABLE_CLM) && ENABLE_CLM == 1)
     /* If smp probe failed, goto _try_smp_fail,
      * directly skip steps to enable smp and l2 */
     lla t0, _try_smp_fail
@@ -172,16 +167,37 @@ _enable_smp:
     fence
 #endif
 
-_enable_l2:
-#if defined(ENABLE_L2) && ENABLE_L2 == 1
-    // set cluster cache way enable to 0
-    // to make all cluster memory as l2 cache
-    li t1, 0
+
+_enable_clm:
+#if defined(ENABLE_CLM) && ENABLE_CLM == 1
+    // Assume L2 is disabled now
+    // Set Cluster Local Memory base address
+    // You can only read or write CLM_BASE_ADDR higher 4 bytes if your PASIZE >= 32, otherwise exception will happen
+    // here I just assume if your CLM_BASE is above 0xFFFFFFFF, your PASIZE you know is above 32
+	// ensure CLM_BASE memory region can execute code.
+    li t1, (CLM_BASE >> 32)
+    beq t1, zero, _set_clm_base_low_4
+    sw t1, 0xd4(t0)
+_set_clm_base_low_4:
+    li t1, (CLM_BASE & 0xFFFFFFFFF)
+    sw t1, 0xd0(t0)
+    // set cluster cache way enable to 0xFFFFFFFF to make full L2 Cache
+    // as Cluster Local Memory(CLM)
+    li t1, 0xFFFFFFFF
     sw t1, 0xd8(t0)
-    // set CC_EN = 0x1
+    // set l2 ctrl = 0x0
     lw t1, 0x10(t0)
-    ori t1, t1, 0x1
+    andi t1, t1, -2
     sw t1, 0x10(t0)
+    /* set CLM cacheable for execute instruction */
+    li t1, CLM_SIZE - 1
+    xori t1, t1, -1
+    csrw MATTRI0_MASK, t1
+    li t2, CLM_BASE
+    and t2, t2, t1
+    andi t2, t2, -8
+    ori t2, t2, 1
+    csrw MATTRI0_BASE, t2
     fence
 #endif
 
@@ -214,15 +230,6 @@ _disable_dlm:
     csrc CSR_MDLM_CTL, t0
 
 _check_hart:
-#if defined(DDR_INIT) && DDR_INIT == 1
-    /* internal use only for customsoc */
-    li t0, 0x7fffff
-    li t1, 0xf8b300020
-    sw t0, 0(t1)
-    li t1, 0xf8b300040
-    sw t0, 0(t1)
-#endif
-
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */
     csrr a0, mhartid
     beq a0, zero, _copy_image
@@ -290,46 +297,28 @@ _copy_image:
     sw zero, 16(t0)
     fence
 
-    /* move _copy_data() to DDR region */
+    /* move _copy_data() to CLM region */
     li t0, COPY_START_BASE
     lla t1, _copy_data
     addi t2, t1, 32
     call _copy_data
 
-    /* Flush cache after copy_data function copied to DDR */
+    /* Flush cache after copy_data function copied to CLM */
     fence
     fence.i
     sfence.vma
 
-    /* move data from NOR to DDR */
-    li t0, OPENSBI_START_BASE
-    lla t1, sbi
-    lla t2, _end_sbi
+    /* move data from NOR to RAM */
+    /* copy spl from nor to ram */
+    li t0, SPL_START_BASE
+    lla t1, spl
+    lla t2, _end_spl
 
     /* call faraway function */
     li t3, COPY_START_BASE
     //call _copy_data
     jalr ra, 0(t3)
 
-    /* U-Boot section */
-    li t0, UBOOT_START_BASE
-    lla t1, uboot
-    lla t2, _end_uboot
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, 0(t3)
-
-    /* FDT section */
-    li t0, FDT_START_BASE
-    lla t1, fdt
-    lla t2, _end_fdt
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
 
 #if defined(WITH_AMPFW_CORE1)
     /* AMP Image Firmware section */
@@ -416,6 +405,7 @@ _copy_image:
 #endif
 
 #ifdef BOOT_MODE_FLASH
+	/* DDR Init TODO */
     /* Kernel section */
     li t0, KERNEL_START_BASE
     lla t1, kernel
@@ -426,17 +416,7 @@ _copy_image:
     //call _copy_data
     jalr ra, t3, 0
 
-    /* Initrd section */
-    li t0, INITRD_START_BASE
-    lla t1, initrd
-    lla t2, _end_initrd
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
 #endif
-
     /* Flush cache */
     fence
     sfence.vma
@@ -471,12 +451,12 @@ _start_boot:
     li a0, 0x2
     csrs CSR_MMISC_CTL1, a0
     /**
-     * prepare opensbi entry arguments
+     * prepare uboot spl entry arguments
      * hartid via a0 register
      * device tree blob address in memory via a1 register. The address must be aligned to 8 bytes.
      */
     csrr a0, mhartid /* hart ID */
-    li a1, FDT_START_BASE /* fdt offset */
+    lla a1, spldtb /* fdt offset */
     li a2, 0 /* Reserved */
 
     /* clear boot_flag to 0 */
@@ -485,8 +465,8 @@ _start_boot:
     sw t1, 0(t0)
     fence
 
-    /* Goto OpenSBI */
-    li t0, OPENSBI_START_BASE
+    /* Goto UBoot SPL */
+    li t0, SPL_START_BASE
     jr t0
 
 
@@ -534,23 +514,23 @@ _deadloop:
     wfi
     j _deadloop
 
-.section .sbipayload
-.global sbi
-.type sbi, @object
-sbi:
-.incbin "opensbi.bin"
+.section .splpayload
+.global spl
+.type spl, @object
+spl:
+.incbin "spl.bin"
 
-.section .ubootpayload
-.global uboot
-.type uboot, @object
-uboot:
-.incbin "u-boot.bin"
-
-.section .fdtpayload
-.global fdt
-.type fdt, @object
-fdt:
+.section .spldtbpayload
+.global spldtb
+.type spldtb, @object
+spldtb:
 .incbin "fdt.dtb"
+
+.section .splitbpayload
+.global splitb
+.type splitb, @object
+splitb:
+.incbin "spl.itb"
 
 #if defined(WITH_AMPFW_CORE1)
 .section .ampfwpayloadc1
@@ -607,7 +587,6 @@ ampfwc6:
 ampfwc7:
 .incbin "ampfw_core7.bin"
 #endif
-
 #ifdef BOOT_MODE_FLASH
 .section .kernelpayload
 .global kernel
@@ -615,9 +594,4 @@ ampfwc7:
 kernel:
 .incbin "kernel.bin"
 
-.section .initrdpayload
-.global initrd
-.type initrd, @object
-initrd:
-.incbin "initrd.bin"
 #endif

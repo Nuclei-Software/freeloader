@@ -404,19 +404,6 @@ _copy_image:
     jalr ra, t3, 0
 #endif
 
-#ifdef BOOT_MODE_FLASH
-	/* DDR Init TODO */
-    /* Kernel section */
-    li t0, KERNEL_START_BASE
-    lla t1, kernel
-    lla t2, _end_kernel
-
-    /* call faraway function */
-    li t3, COPY_START_BASE
-    //call _copy_data
-    jalr ra, t3, 0
-
-#endif
     /* Flush cache */
     fence
     sfence.vma

@@ -475,26 +475,26 @@ _deadloop:
     wfi
     j _deadloop
 
-.section .splpayload
+.section .splpayload,"a"
 .global spl
 .type spl, @object
 spl:
 .incbin "spl.bin"
 
-.section .spldtbpayload
+.section .spldtbpayload,"a"
 .global spldtb
 .type spldtb, @object
 spldtb:
 .incbin "spl.dtb"
 
-.section .splitbpayload
+.section .splitbpayload,"a"
 .global splitb
 .type splitb, @object
 splitb:
 .incbin "spl.itb"
 
 #ifdef BOOT_MODE_FLASH
-.section .kernelitbpayload
+.section .kernelitbpayload,"a"
 .global kernelitb
 .type kernelitb, @object
 kernelitb:
@@ -502,7 +502,7 @@ kernelitb:
 #endif
 
 #if defined(WITH_AMPFW_CORE1)
-.section .ampfwpayloadc1
+.section .ampfwpayloadc1,"a"
 .global ampfwc1
 .type ampfwc1, @object
 ampfwc1:
@@ -510,7 +510,7 @@ ampfwc1:
 #endif
 
 #if defined(WITH_AMPFW_CORE2)
-.section .ampfwpayloadc2
+.section .ampfwpayloadc2,"a"
 .global ampfwc2
 .type ampfwc2, @object
 ampfwc2:
@@ -518,7 +518,7 @@ ampfwc2:
 #endif
 
 #if defined(WITH_AMPFW_CORE3)
-.section .ampfwpayloadc3
+.section .ampfwpayloadc3,"a"
 .global ampfwc3
 .type ampfwc3, @object
 ampfwc3:
@@ -526,7 +526,7 @@ ampfwc3:
 #endif
 
 #if defined(WITH_AMPFW_CORE4)
-.section .ampfwpayloadc4
+.section .ampfwpayloadc4,"a"
 .global ampfwc4
 .type ampfwc4, @object
 ampfwc4:
@@ -534,7 +534,7 @@ ampfwc4:
 #endif
 
 #if defined(WITH_AMPFW_CORE5)
-.section .ampfwpayloadc5
+.section .ampfwpayloadc5,"a"
 .global ampfwc5
 .type ampfwc5, @object
 ampfwc5:
@@ -542,7 +542,7 @@ ampfwc5:
 #endif
 
 #if defined(WITH_AMPFW_CORE6)
-.section .ampfwpayloadc6
+.section .ampfwpayloadc6,"a"
 .global ampfwc6
 .type ampfwc6, @object
 ampfwc6:
@@ -550,7 +550,7 @@ ampfwc6:
 #endif
 
 #if defined(WITH_AMPFW_CORE7)
-.section .ampfwpayloadc7
+.section .ampfwpayloadc7,"a"
 .global ampfwc7
 .type ampfwc7, @object
 ampfwc7:

@@ -71,6 +71,19 @@
 #define CSR_MDLM_CTL        0x7C1
 #define CSR_MMISC_CTL1      0x7E2
 
+#define MHARTID_MASK 0x1
+/* define hartid mask bits */
+#ifndef MHARTID_MASK
+#error "MHARTID_MASK is not defined!"
+#else
+#define HARTID_MASK      MHARTID_MASK
+#endif
+
+.macro GET_MASKED_HARTID result_reg
+    # Read hartid into result register
+    csrr    \result_reg, mhartid
+    and     \result_reg, \result_reg, HARTID_MASK
+.endm
 
 #ifndef CACHE_CTRL
 /* ICache Enable, DCache Enable */
@@ -224,7 +237,7 @@ _check_hart:
 #endif
 
     /* Hart 0 copy images, other hart wait copy finished, and jump to boot */
-    csrr a0, mhartid
+    GET_MASKED_HARTID a0
     beq a0, zero, _copy_image
 
 _wait_copy:
@@ -245,7 +258,7 @@ _loop_wait:
     j _wait_copy
 
 _start_smporamp:
-    csrr t0, mhartid
+    GET_MASKED_HARTID t0
     li t1, AMP_START_CORE
     // branch to amp boot if amp start core >= hartid
     bgeu t0, t1, _start_amp
@@ -254,7 +267,7 @@ _start_smporamp:
 _start_amp:
     // Increase REBOOT_CNT_BASE + hartid * 4
     li t0, REBOOT_CNT_BASE
-    csrr t2, mhartid
+    GET_MASKED_HARTID t2
     li t1, 4
     mul t1, t1, t2
     add t0, t0, t1
@@ -267,7 +280,7 @@ _start_amp:
     // jump address t0 = AMPFW_START_BASE + AMPFW_SIZE * (mhartid - 1)
     li t0, AMPFW_START_BASE
     li t1, AMPFW_SIZE
-    csrr t2, mhartid
+    GET_MASKED_HARTID t2
     // mhartid must > 1 here
     addi t2, t2, -1
     // hart program offset = AMPfw_size * (hartid-1)
@@ -475,7 +488,8 @@ _start_boot:
      * hartid via a0 register
      * device tree blob address in memory via a1 register. The address must be aligned to 8 bytes.
      */
-    csrr a0, mhartid /* hart ID */
+    /* hart ID */
+    GET_MASKED_HARTID a0
     li a1, FDT_START_BASE /* fdt offset */
     li a2, 0 /* Reserved */
 

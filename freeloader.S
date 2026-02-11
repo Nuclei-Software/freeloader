@@ -104,7 +104,6 @@
 _start:
     /* Disable interrupt */
     csrc mstatus, 0x8
-
 #ifdef __riscv_vector
     /* enable rvv */
     li t1, 0x200
@@ -164,6 +163,13 @@ _get_iregion:
     sw t1, 0x8(t2)
 #endif
 
+    /*set cpu localtimer clk to cpu clk */
+    li t1, 0x30ff8
+    add t1, t0, t1
+    lw t2, 0(t1)
+    ori t2, t2, 0x4
+    sw t2, 0(t1)
+
     // get smp ctrl base to t0
     // iregion_base + 0x40000
     li t1, 0x40000
@@ -204,7 +210,7 @@ _enable_l1:
     csrw 0x7ce, t0
     /* Enable I/D Cache */
     li t0, CSR_CACHE_ENABLE
-    csrs CSR_MCACHE_CTL, t0
+    csrw CSR_MCACHE_CTL, t0
 
 _disable_ilm:
     /* check whether ilm present */

@@ -163,13 +163,6 @@ _get_iregion:
     sw t1, 0x8(t2)
 #endif
 
-    /*set cpu localtimer clk to cpu clk */
-    li t1, 0x30ff8
-    add t1, t0, t1
-    lw t2, 0(t1)
-    ori t2, t2, 0x4
-    sw t2, 0(t1)
-
     // get smp ctrl base to t0
     // iregion_base + 0x40000
     li t1, 0x40000
